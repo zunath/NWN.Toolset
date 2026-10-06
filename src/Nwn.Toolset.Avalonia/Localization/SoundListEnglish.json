@@ -1,0 +1,23 @@
+{
+  "NoCatalog": "No indexed WAV resources are available.",
+  "SearchWatermark": "Filter audio resources by ResRef",
+  "Add": "Add",
+  "Play": "Play",
+  "Stop": "Stop",
+  "Remove": "Remove",
+  "MoveUp": "Move up",
+  "MoveDown": "Move down",
+  "NoSounds": "No sounds",
+  "NoMatches": "No matching sounds",
+  "SoundCount": "{0} sound",
+  "SoundsCount": "{0} sounds",
+  "MatchingSoundsCount": "{0} of {1} sounds",
+  "NoRoomSingular": "This behavior plays one sound. {1}",
+  "NoRoomPlural": "This behavior plays {0} sounds. {1}",
+  "RemoveToChoose": "Remove one to choose another.",
+  "AddDescription": "Add sound",
+  "RemoveDescription": "Remove sound {0}",
+  "MoveUpDescription": "Move sound {0} up",
+  "MoveDownDescription": "Move sound {0} down",
+  "InvalidResRef": "This sound’s resource name cannot be added to a native playlist."
+}

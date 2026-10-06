@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             x:Class="Nwn.Toolset.Avalonia.Areas.AreaCreationForm"
+             x:DataType="areas:IAreaCreationFormState"
+             IsVisible="{Binding ., Converter={x:Static ObjectConverters.IsNotNull}}">
+  <Border ZIndex="1"
+          Background="{Binding Background, RelativeSource={RelativeSource AncestorType=areas:AreaCreationForm}}"
+          BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=areas:AreaCreationForm}}" BorderThickness="1"
+          Padding="12" CornerRadius="4" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+          Margin="8">
+    <StackPanel Spacing="7">
+      <TextBlock Text="{Binding Labels.Title}" FontWeight="SemiBold" />
+      <TextBox x:Name="ResRefInput" Text="{Binding ResRef, Mode=TwoWay}" Watermark="{Binding Labels.ResRefWatermark}" />
+      <TextBox x:Name="DisplayNameInput" Text="{Binding DisplayName, Mode=TwoWay}" Watermark="{Binding Labels.DisplayNameWatermark}" />
+      <ComboBox x:Name="TilesetPicker" ItemsSource="{Binding Tilesets}" SelectedItem="{Binding SelectedTileset, Mode=TwoWay}"
+                HorizontalAlignment="Stretch" />
+      <Grid ColumnDefinitions="Auto,*,Auto,*" ColumnSpacing="6">
+        <TextBlock Grid.Column="0" Text="{Binding Labels.Width}" Classes="dim" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="WidthInput" Grid.Column="1" Value="{Binding Width, Mode=TwoWay}" Minimum="1" Maximum="32" Increment="1" />
+        <TextBlock Grid.Column="2" Text="{Binding Labels.Height}" Classes="dim" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="HeightInput" Grid.Column="3" Value="{Binding Height, Mode=TwoWay}" Minimum="1" Maximum="32" Increment="1" />
+      </Grid>
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <Button x:Name="CreateButton" Content="{Binding Labels.Create}" Classes="primary" Command="{Binding CreateCommand}" />
+        <Button x:Name="CancelButton" Content="{Binding Labels.Cancel}" Command="{Binding CancelCommand}" />
+      </StackPanel>
+      <TextBlock Text="{Binding StatusMessage}"
+                 Foreground="{Binding StatusForeground, RelativeSource={RelativeSource AncestorType=areas:AreaCreationForm}}" TextWrapping="Wrap"
+                 IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+  </Border>
+</UserControl>

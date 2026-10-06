@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:waypoints="using:Nwn.Toolset.Avalonia.Waypoints"
+             xmlns:sharedBehaviors="using:Nwn.Toolset.Avalonia.Behaviors"
+             xmlns:variables="using:Nwn.Toolset.Avalonia.Variables"
+             x:Class="Nwn.Toolset.Avalonia.Waypoints.Views.WaypointBehaviorEditorView"
+             x:CompileBindings="True"
+             x:DataType="waypoints:WaypointBehaviorEditorViewModel">
+
+  <UserControl.DataTemplates>
+    <!-- The waypoint form needs nothing beyond the shared row. -->
+    <DataTemplate DataType="waypoints:WaypointRowViewModel">
+      <sharedBehaviors:BehaviorRowView Margin="4,1" />
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <TabControl>
+    <TabItem Header="{Binding Texts.TabBasic}">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding BasicRows}" Margin="14,10" />
+      </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="{Binding Texts.TabBehavior}">
+      <Grid ColumnDefinitions="210,*">
+        <sharedBehaviors:BehaviorRailView Grid.Column="0" Items="{Binding BehaviorList}"
+                                          ChooseCommand="{Binding ChooseBehaviorCommand}" />
+
+        <ScrollViewer Grid.Column="1" BorderBrush="{DynamicResource RuleBrush}"
+                      BorderThickness="1,0,0,0">
+          <Border Classes="card" Margin="8,12">
+            <StackPanel>
+              <TextBlock Text="{Binding HeaderName}" Classes="section" Margin="16,12,16,2" />
+              <TextBlock Text="{Binding Behavior.Summary}" Classes="dim" Margin="16,0,16,8"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding Behavior.Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ItemsControl ItemsSource="{Binding BehaviorRows}" Margin="8,2,8,8" />
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="{Binding Texts.TabVariables}" IsVisible="{Binding ShowsVariablesTab}">
+      <variables:VarTableSectionView DataContext="{Binding Variables}" />
+    </TabItem>
+  </TabControl>
+</UserControl>

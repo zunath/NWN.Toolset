@@ -1,0 +1,165 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:explorer="using:Nwn.Toolset.Avalonia.Explorer"
+             xmlns:workflow="using:Nwn.Toolset.Avalonia.Explorer.Workflow"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="700"
+             x:Class="Nwn.Toolset.Avalonia.Explorer.Views.ModuleExplorerView"
+             x:CompileBindings="True"
+             x:DataType="workflow:ModuleExplorerController">
+
+  <!-- One tab per section, then search, then that section's folder tree. Search lives in the panel it
+       searches. No title row: the host's dock tab is this panel's title. -->
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <!-- Tabs. Each carries its own total, so the sections you are not in still say how much is in them. -->
+    <ItemsControl Grid.Row="0" ItemsSource="{Binding Tabs}" Margin="8,8,8,0">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <UniformGrid Rows="1" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="explorer:ExplorerTabViewModel">
+          <Button Padding="8,5" CornerRadius="4" Margin="0,0,4,0"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                  Classes.primary="{Binding IsSelected}"
+                  Command="{Binding $parent[ItemsControl].((workflow:ModuleExplorerController)DataContext).SelectTabCommand}"
+                  CommandParameter="{Binding}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="{Binding Label}" FontSize="11.5" VerticalAlignment="Center" />
+              <TextBlock Classes="count" Text="{Binding Count}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto"
+          Margin="8,8,8,6" ColumnSpacing="6">
+      <TextBox Grid.Row="0" Grid.Column="0" Text="{Binding Filter}" Watermark="{Binding Texts.SearchWatermark}" />
+      <!-- The button names what it makes, which is why it is bound rather than labelled. -->
+      <Button Grid.Row="0" Grid.Column="1" Content="{Binding NewItemLabel}"
+              Command="{Binding NewItemCommand}" IsVisible="{Binding CanCreateSelectedType}" />
+      <!-- Content matches join the ordinary name/ResRef results after a debounced background scan. -->
+      <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding ContentSearchLabel}"
+                 Margin="2,6,0,0" VerticalAlignment="Center" Classes="dim"
+                 IsVisible="{Binding IsSearchingContent}" />
+    </Grid>
+
+    <Grid Grid.Row="2">
+      <ListBox x:Name="ModuleTree" Background="Transparent" BorderThickness="0"
+               ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}"
+               DoubleTapped="OnItemsDoubleTapped" KeyDown="OnModuleTreeKeyDown">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0,2" />
+          </Style>
+          <Style Selector="ListBoxItem.drag-source">
+            <Setter Property="Opacity" Value="0.4" />
+          </Style>
+          <Style Selector="ListBoxItem.drag-target">
+            <Setter Property="Background" Value="{DynamicResource AccentDimBrush}" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="explorer:ExplorerNodeViewModel">
+            <!-- ContextRequested selects the row first: Avalonia does not select on right-click, and
+                 every command on these menus acts on the selection. -->
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="{Binding Indent}"
+                  Background="Transparent" ContextRequested="OnRowContextRequested"
+                  PointerPressed="OnRowPointerPressed"
+                  PointerMoved="OnRowPointerMoved"
+                  PointerReleased="OnRowPointerReleased"
+                  PointerCaptureLost="OnRowPointerCaptureLost">
+              <Grid.ContextMenu>
+                <ContextMenu>
+                  <!-- Folder actions. Hidden rather than greyed out on a resource row and on Unsorted,
+                       which is generated and so has nothing to rename or delete. -->
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.NewFolderMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).NewFolderCommand}" />
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.RenameFolderMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).RenameFolderCommand}"
+                            IsVisible="{Binding IsFolder}" />
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.DeleteFolderMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).DeleteFolderCommand}"
+                            IsVisible="{Binding IsFolder}" />
+
+                  <Separator IsVisible="{Binding IsResource}" />
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.OpenMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).OpenSelectedCommand}"
+                            IsVisible="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).CanOpenSelectedType}" />
+                  <!-- Compile from the file, without opening it. Shown only on a compilable tab. -->
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.CompileMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).CompileSelectedCommand}"
+                            IsVisible="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).CanCompileSelectedType}" />
+                  <!-- A submenu of folders rather than a modal picker: the tree the builder is looking
+                       at is already the list of choices. -->
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.MoveToMenu}"
+                            IsVisible="{Binding IsResource}"
+                            ItemsSource="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).MoveTargets}">
+                    <MenuItem.Styles>
+                      <!-- Command comes off the item, not the panel: a MenuItem generated from an
+                           ItemsSource can bind against the item but has no route back to the panel's
+                           own commands. -->
+                      <Style Selector="MenuItem > MenuItem" x:DataType="explorer:ExplorerMoveTarget">
+                        <Setter Property="Header" Value="{Binding Path}" />
+                        <Setter Property="Command" Value="{Binding Command}" />
+                      </Style>
+                    </MenuItem.Styles>
+                  </MenuItem>
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.RemoveFromFolderMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).RemoveFromFolderCommand}"
+                            IsVisible="{Binding IsResource}" />
+                  <Separator IsVisible="{Binding IsResource}" />
+                  <MenuItem Header="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).Texts.DeleteMenu}"
+                            Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).DeleteSelectedResourceCommand}"
+                            IsVisible="{Binding IsResource}" />
+                </ContextMenu>
+              </Grid.ContextMenu>
+
+              <!-- A wide, tall hit box around a small glyph: the arrow is the thing aimed at most in this
+                   panel and a 15px target is a miss waiting to happen. -->
+              <Button Grid.Column="0" Content="{Binding Twisty}" Width="26" MinHeight="22" Padding="0"
+                      Background="Transparent" BorderThickness="0" FontSize="11"
+                      Foreground="{DynamicResource InkTertiaryBrush}"
+                      Command="{Binding $parent[ListBox].((workflow:ModuleExplorerController)DataContext).ToggleCommand}"
+                      CommandParameter="{Binding}" />
+
+              <!-- Branch: name and count. Resource: name with a leading glyph. -->
+              <TextBlock Grid.Column="1" Classes="name" Text="{Binding Name}"
+                         FontWeight="{Binding Weight}" VerticalAlignment="Center"
+                         IsVisible="{Binding IsBranch}" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7"
+                          IsVisible="{Binding IsResource}">
+                <TextBlock Text="&#x25A1;" FontSize="10" VerticalAlignment="Center"
+                           Foreground="{DynamicResource InkTertiaryBrush}" />
+                <TextBlock Classes="name" Text="{Binding Name}" />
+              </StackPanel>
+
+              <!-- The resref sits at the end of the row rather than under the name: one line per
+                   resource keeps a long tree scannable, and the monospace still separates it. -->
+              <TextBlock Grid.Column="2" Classes="resref" Margin="12,0,12,0" VerticalAlignment="Center"
+                         Text="{Binding ResRef}" IsVisible="{Binding IsResource}" />
+              <TextBlock Grid.Column="2" Classes="count" Margin="8,0,12,0" VerticalAlignment="Center"
+                         Text="{Binding Count}" IsVisible="{Binding IsBranch}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <!-- The host's creation form (the new-area wizard), shown inline over the tree. -->
+      <areas:AreaCreationForm ZIndex="1"
+                              Background="{DynamicResource PanelRaisedBrush}"
+                              BorderBrush="{DynamicResource RuleStrongBrush}"
+                              StatusForeground="{DynamicResource AmberBrush}"
+                              DataContext="{Binding ActiveCreationForm}" />
+    </Grid>
+
+    <TextBlock Grid.Row="3" Margin="10,4,10,8" Classes="dim" FontSize="11.5" TextWrapping="Wrap"
+               Text="{Binding StatusMessage}"
+               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </Grid>
+</UserControl>

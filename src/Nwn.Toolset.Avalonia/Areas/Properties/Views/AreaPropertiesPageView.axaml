@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:properties="using:Nwn.Toolset.Avalonia.Areas.Properties"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             xmlns:fields="using:Nwn.Toolset.Avalonia.Fields"
+             xmlns:fieldViews="using:Nwn.Toolset.Avalonia.Fields.Views"
+             xmlns:variables="using:Nwn.Toolset.Avalonia.Variables"
+             xmlns:doorViews="using:Nwn.Toolset.Avalonia.Doors.Views"
+             xmlns:waypointViews="using:Nwn.Toolset.Avalonia.Waypoints.Views"
+             xmlns:soundViews="using:Nwn.Toolset.Avalonia.Sounds.Views"
+             xmlns:triggerViews="using:Nwn.Toolset.Avalonia.Triggers.Views"
+             x:Class="Nwn.Toolset.Avalonia.Areas.Properties.Views.AreaPropertiesPageView"
+             x:CompileBindings="True"
+             x:DataType="properties:AreaPropertiesPageViewModel">
+
+  <!-- The area document's Properties page. The host places it in its scrollable Properties tab;
+       the page itself does not scroll, so the host keeps one scroll position per document. -->
+  <StackPanel Margin="8" Spacing="6">
+    <Expander Header="{Binding AreaPropertiesHeader}"
+              IsExpanded="{Binding AreaPropertiesExpanded, Mode=TwoWay}"
+              HorizontalAlignment="Stretch">
+      <ItemsControl ItemsSource="{Binding AreaPropertyGroups}" Margin="8,4">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="fields:EditorGroup">
+            <Expander Header="{Binding Title}" IsExpanded="True" Margin="0,0,0,6"
+                      HorizontalAlignment="Stretch">
+              <ItemsControl ItemsSource="{Binding Fields}" Margin="8,4">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="fields:FieldViewModel">
+                    <fieldViews:FieldView />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Expander>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Expander>
+
+    <ItemsControl ItemsSource="{Binding Sections}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="properties:AreaInstanceSectionViewModel">
+          <Expander HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                    IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+            <Expander.Header>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Title}" FontWeight="Bold" />
+                <TextBlock Text="{Binding Rows.Count}" Opacity="0.6" />
+              </StackPanel>
+            </Expander.Header>
+            <StackPanel Margin="8,4" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="{Binding AddLabel}" Command="{Binding AddCommand}" />
+                <Button Content="{Binding DuplicateLabel}" Command="{Binding DuplicateCommand}" IsEnabled="{Binding HasSelection}" />
+                <Button Content="{Binding DeleteLabel}" Command="{Binding DeleteCommand}" IsEnabled="{Binding HasSelection}" />
+              </StackPanel>
+
+              <Border IsVisible="{Binding ActivePaletteBrowser, Converter={x:Static ObjectConverters.IsNotNull}}"
+                      BorderBrush="{DynamicResource DockThemeBorderMidBrush}" BorderThickness="1"
+                      Padding="8" CornerRadius="4">
+                <StackPanel Spacing="6" DataContext="{Binding ActivePaletteBrowser}"
+                            x:DataType="properties:PaletteBrowserViewModel">
+                  <TextBlock Text="{Binding Heading}" FontWeight="Bold" />
+                  <TreeView ItemsSource="{Binding Nodes}" SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
+                            MaxHeight="320">
+                    <TreeView.ItemTemplate>
+                      <TreeDataTemplate DataType="properties:PaletteNodeViewModel" ItemsSource="{Binding Children}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="{Binding DisplayName}" />
+                          <TextBlock Text="{Binding ResRef}" Opacity="0.6" />
+                        </StackPanel>
+                      </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                  </TreeView>
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Content="{Binding PlaceLabel}" Command="{Binding ChooseCommand}" />
+                    <Button Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding StatusMessage}" Foreground="Orange"
+                             IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Column captions come from the section's text catalogue; columns are not in the
+                   visual tree, so the code-behind applies them when the grid attaches. -->
+              <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+                        AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="260"
+                        GridLinesVisibility="Horizontal"
+                        AttachedToVisualTree="OnInstanceGridAttached">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Tag" Binding="{Binding Tag}" Width="2*" x:DataType="properties:InstanceRow" />
+                  <DataGridTextColumn Header="Template" Binding="{Binding TemplateResRef}" Width="2*" x:DataType="properties:InstanceRow" />
+                  <DataGridTextColumn Header="X" Binding="{Binding X}" Width="*" x:DataType="properties:InstanceRow" />
+                  <DataGridTextColumn Header="Y" Binding="{Binding Y}" Width="*" x:DataType="properties:InstanceRow" />
+                  <DataGridTextColumn Header="Z" Binding="{Binding Z}" Width="*" x:DataType="properties:InstanceRow" />
+                </DataGrid.Columns>
+              </DataGrid>
+
+              <StackPanel IsVisible="{Binding HasSelection}" Spacing="4">
+                <Border IsVisible="{Binding UsesDoorEditor}">
+                  <doorViews:DoorBehaviorEditorView DataContext="{Binding DoorEditor}" MinHeight="520" />
+                </Border>
+                <!-- Every non-sound instance keeps the generic detail form. -->
+                <StackPanel IsVisible="{Binding !HasSoundBehaviorEditor}" Spacing="4">
+                  <areas:AreaInstanceDetailForm />
+                  <Expander Header="{Binding LocalVariablesHeader}"
+                            IsVisible="{Binding VarTableSection, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Stretch" IsExpanded="False">
+                    <variables:VarTableSectionView DataContext="{Binding VarTableSection}" />
+                  </Expander>
+                </StackPanel>
+
+                <!-- Waypoint placements carry their behavior fields directly in the area's
+                     GIT. Transform remains an area concern; every other field belongs to the
+                     same editor used by a UTW blueprint. -->
+                <StackPanel IsVisible="{Binding HasWaypointBehaviorEditor}" Spacing="8">
+                  <waypointViews:WaypointBehaviorEditorView DataContext="{Binding WaypointEditor}" Height="620" />
+                </StackPanel>
+
+                <!-- A placed trigger owns its tag, destination, trap and script fields in the typed
+                     editor. Transform and geometry stay in the area's form above it. -->
+                <StackPanel IsVisible="{Binding HasTriggerBehaviorEditor}" Spacing="8">
+                  <triggerViews:TriggerBehaviorEditorView DataContext="{Binding TriggerEditor}" Height="520" />
+                </StackPanel>
+
+                <!-- A placed sound owns all UTS behavior fields itself. World position remains
+                     an area concern; Elevation is a sound falloff value inside the editor. -->
+                <StackPanel IsVisible="{Binding HasSoundBehaviorEditor}" Spacing="8">
+                  <Grid ColumnDefinitions="24,*,24,*,24,*" ColumnSpacing="6">
+                    <TextBlock Grid.Column="0" Text="{Binding InstanceLabels.X}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="1" Value="{Binding DetailX, Mode=TwoWay}" Increment="0.5" />
+                    <TextBlock Grid.Column="2" Text="{Binding InstanceLabels.Y}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="3" Value="{Binding DetailY, Mode=TwoWay}" Increment="0.5" />
+                    <TextBlock Grid.Column="4" Text="{Binding InstanceLabels.Z}" VerticalAlignment="Center" />
+                    <NumericUpDown Grid.Column="5" Value="{Binding DetailZ, Mode=TwoWay}" Increment="0.5" />
+                  </Grid>
+                  <soundViews:SoundBehaviorEditorView DataContext="{Binding SoundEditor}" Height="620" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+          </Expander>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

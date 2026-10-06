@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             x:Class="Nwn.Toolset.Avalonia.Areas.AreaSceneView"
+             x:DataType="areas:AreaSceneView">
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="PanelRaisedBrush" Color="#191E26" />
+    <SolidColorBrush x:Key="RuleBrush" Color="#262D38" />
+    <SolidColorBrush x:Key="RuleStrongBrush" Color="#333C4A" />
+    <SolidColorBrush x:Key="InkBrush" Color="#DDE3EB" />
+    <SolidColorBrush x:Key="InkSecondaryBrush" Color="#98A2B0" />
+    <SolidColorBrush x:Key="InkTertiaryBrush" Color="#6C7683" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#5B9BF5" />
+    <SolidColorBrush x:Key="AccentDimBrush" Color="#1E3350" />
+    <SolidColorBrush x:Key="AccentBorderBrush" Color="#2D4E7C" />
+    <SolidColorBrush x:Key="AccentInkBrush" Color="#D3E3FB" />
+    <SolidColorBrush x:Key="AmberBrush" Color="#D9A155" />
+    <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI, Inter, sans-serif</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Cascadia Code, Consolas, monospace</FontFamily>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="RepeatButton.pad">
+      <Setter Property="Delay" Value="16" />
+      <Setter Property="Interval" Value="16" />
+    </Style>
+    <Style Selector="TextBlock.mono">
+      <Setter Property="FontFamily" Value="{DynamicResource MonoFont}" />
+      <Setter Property="Foreground" Value="{DynamicResource InkSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.pad:pointerover /template/ ContentPresenter, RepeatButton.pad:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentDimBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBorderBrush}" />
+      <Setter Property="TextBlock.Foreground" Value="{DynamicResource AccentInkBrush}" />
+    </Style>
+    <Style Selector="Button.pad, RepeatButton.pad">
+      <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+      <Setter Property="Background" Value="{DynamicResource PanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource RuleStrongBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="3" />
+      <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+        <Grid x:Name="SceneRoot">
+
+          <ContentPresenter Content="{Binding Surface}" />
+
+          <Border Grid.Row="0" Background="#B0202020" CornerRadius="4" Padding="10,6"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  IsVisible="{Binding Overlay.IsBuildingScene}">
+            <TextBlock Text="{Binding Overlay.SceneStatus}" Foreground="White" />
+          </Border>
+
+          <!-- Viewport HUD. Only present when it has something to say: a failure, a drag hint while
+               something is selected, or a placement prompt. There is deliberately no standing caption
+               describing the area - what the area is belongs on the Properties tab, and an overlay that
+               is always there is an overlay permanently covering part of the map. -->
+          <Border Grid.Row="0" Background="#D00C1017" CornerRadius="3" Padding="9,5"
+                  BorderBrush="{DynamicResource RuleBrush}" BorderThickness="1"
+                  HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="10"
+                  IsVisible="{Binding Overlay.HasViewportHud}">
+            <StackPanel Spacing="3">
+              <TextBlock Text="{Binding Overlay.SceneStatus}" Classes="mono" FontSize="10.5"
+                         TextTrimming="CharacterEllipsis" MaxWidth="480"
+                         IsVisible="{Binding Overlay.HasSceneStatus}" />
+              <TextBlock Text="{Binding DragHintText}"
+                         Classes="mono" FontSize="10.5"
+                         Foreground="{DynamicResource InkTertiaryBrush}"
+                         IsVisible="{Binding Overlay.HasSceneSelection}" />
+              <TextBlock Text="{Binding Overlay.TileSelectionStatus}" Classes="mono" FontSize="10.5"
+                         Foreground="{DynamicResource AmberBrush}"
+                         IsVisible="{Binding Overlay.HasTileSelection}" />
+              <TextBlock Text="{Binding TileHeightHintText}"
+                         Classes="mono" FontSize="10.5"
+                         Foreground="{DynamicResource InkTertiaryBrush}"
+                         IsVisible="{Binding Overlay.HasTileSelection}" />
+              <TextBlock Text="{Binding Overlay.PlacementStatus}" Classes="mono" FontSize="10.5"
+                         Foreground="{DynamicResource AccentBrush}"
+                         TextTrimming="CharacterEllipsis" MaxWidth="480"
+                         IsVisible="{Binding Overlay.HasPlacementStatus}" />
+            </StackPanel>
+          </Border>
+
+          <!-- Drag readout. Present only while a drag is in flight, showing where the thing is now and
+               how far it has come - the second half being what a static coordinate box cannot tell you. -->
+          <Border Grid.Row="0" Background="#F00C1017" CornerRadius="3" Padding="10,7"
+                  BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
+                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="18"
+                  IsVisible="{Binding IsDragging}">
+            <StackPanel Spacing="3">
+              <TextBlock Text="{Binding DragPosition}" Classes="mono" FontSize="11.5"
+                         Foreground="{DynamicResource AccentInkBrush}" />
+              <TextBlock Text="{Binding DragFacing}" Classes="mono" FontSize="11.5"
+                         Foreground="{DynamicResource AccentInkBrush}" />
+              <TextBlock Text="{Binding DragDelta}" Classes="mono" FontSize="11"
+                         Foreground="{DynamicResource AmberBrush}"
+                         IsVisible="{Binding HasDragDelta}" />
+            </StackPanel>
+          </Border>
+
+          <!-- Camera and rotate pad. A pointing device is the fast way to fly the view, but not
+               everyone has three buttons and nothing about a drag is repeatable - "nudge it one more
+               step" is a button. Floated over the map rather than given its own row so it costs no
+               height when a builder is not using it. -->
+          <Border Grid.Row="0" Background="#D00C1017" CornerRadius="4" Padding="6,4"
+                  BorderBrush="{DynamicResource RuleBrush}" BorderThickness="1"
+                  HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="10">
+            <WrapPanel Orientation="Horizontal">
+              <areas:AreaCameraControls x:Name="CameraPad" />
+              <Border Width="1" Margin="4,2" Background="{DynamicResource RuleBrush}" />
+
+              <!-- Rotate repeats and previews while held (see RotateSelectionTick); the document edit
+                   lands once, on release. -->
+              <RepeatButton Classes="pad" Content="&#x27F2;" ToolTip.Tip="{Binding RotateAnticlockwiseText}"
+                            Click="OnRotateSelectionAnticlockwise"
+                            PointerReleased="OnRotateSelectionReleased"
+                            PointerCaptureLost="OnRotateSelectionCaptureLost"
+                            IsEnabled="{Binding Overlay.CanRotateSelection}" />
+              <RepeatButton Classes="pad" Content="&#x27F3;" ToolTip.Tip="{Binding RotateClockwiseText}"
+                            Click="OnRotateSelectionClockwise"
+                            PointerReleased="OnRotateSelectionReleased"
+                            PointerCaptureLost="OnRotateSelectionCaptureLost"
+                            IsEnabled="{Binding Overlay.CanRotateSelection}" />
+              <Button Classes="pad" Content="&#x21AF;" ToolTip.Tip="{Binding RotateRandomlyText}"
+                      Click="OnRotateSelectionRandomly"
+                      IsEnabled="{Binding Overlay.CanRotateSelection}" />
+
+              <Border Width="1" Margin="4,2" Background="{DynamicResource RuleBrush}" />
+
+              <!-- These act on the selected tile, immediately and once per press, so a RepeatButton
+                   would step it several levels from one held click. Click a cell to select it. -->
+              <Button x:Name="RaiseTileAction" Classes="pad" Content="&#x21E7;" Click="OnRaiseTile" IsEnabled="{Binding Overlay.HasTileSelection}"
+                      ToolTip.Tip="{Binding RaiseTileText}" />
+              <Button x:Name="LowerTileAction" Classes="pad" Content="&#x21E9;" Click="OnLowerTile" IsEnabled="{Binding Overlay.HasTileSelection}"
+                      ToolTip.Tip="{Binding LowerTileText}" />
+            </WrapPanel>
+          </Border>
+
+          <Border Grid.Row="0" x:Name="GlStatusBorder" Background="#C0802020" CornerRadius="4" Padding="8,4"
+                  HorizontalAlignment="Center" VerticalAlignment="Top" Margin="8" IsVisible="False">
+            <TextBlock x:Name="GlStatusText" Foreground="White" TextWrapping="Wrap" MaxWidth="480" />
+          </Border>
+
+        </Grid>
+</UserControl>

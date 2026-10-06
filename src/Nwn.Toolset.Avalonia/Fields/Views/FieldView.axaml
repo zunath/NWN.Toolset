@@ -1,0 +1,160 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fields="using:Nwn.Toolset.Avalonia.Fields"
+             xmlns:behaviors="using:Nwn.Toolset.Avalonia.Behaviors"
+             x:Class="Nwn.Toolset.Avalonia.Fields.Views.FieldView"
+             x:CompileBindings="True"
+             x:DataType="fields:FieldViewModel">
+
+  <!-- One schema field, drawn by kind. Every blueprint and area property editor uses this one copy
+       so a field cannot look different depending on which editor shows it. Derived kinds (script,
+       resource picker) are listed before the text field they extend: the first match wins. -->
+  <UserControl.DataTemplates>
+    <!-- The strref is a watermark rather than a column. It exists to explain a blank box - the name
+         comes from the TLK and this field edits the override - and as a column it was a line of grey
+         text as wide as the box it explained, on every row, whether or not the box was blank. A
+         description then got what was left, which was a couple of characters. -->
+    <DataTemplate DataType="fields:LocStringFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,5,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <Panel>
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsSingleLine}">
+            <TextBox Grid.Column="0" Text="{Binding Text, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                     Watermark="{Binding StrRefDisplay}" />
+            <Button Grid.Column="1" Content="{Binding Texts.OpenTlkRow}" Margin="5,0,0,0" Padding="8,4"
+                    Command="{Binding OpenTlkRowCommand}" IsVisible="{Binding CanOpenTlkRow}"
+                    ToolTip.Tip="{Binding Texts.OpenTlkRowTooltip}" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsMultiline}">
+            <TextBox Grid.Column="0" Text="{Binding Text, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                     Watermark="{Binding StrRefDisplay}"
+                     AcceptsReturn="True" TextWrapping="Wrap"
+                     MinHeight="140" VerticalContentAlignment="Top"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+            <Button Grid.Column="1" Content="{Binding Texts.OpenTlkRow}" Margin="5,0,0,0" Padding="8,4"
+                    VerticalAlignment="Top"
+                    Command="{Binding OpenTlkRowCommand}" IsVisible="{Binding CanOpenTlkRow}"
+                    ToolTip.Tip="{Binding Texts.OpenTlkRowTooltip}" />
+          </Grid>
+        </Panel>
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:CheckFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,4,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <StackPanel>
+          <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" />
+          <TextBlock Text="{Binding Description}" Classes="dim"
+                     FontSize="11" TextWrapping="Wrap" Margin="0,3,0,3"
+                     IsVisible="{Binding HasDescription}" />
+        </StackPanel>
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:IntegerFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <NumericUpDown Value="{Binding Value, Mode=TwoWay}" MinWidth="110" MaxWidth="220"
+                       HorizontalAlignment="Left"
+                       FormatString="0" Increment="1" IsEnabled="{Binding !IsReadOnly}" />
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:FloatFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <NumericUpDown Value="{Binding Value, Mode=TwoWay}" MinWidth="110" MaxWidth="220"
+                       HorizontalAlignment="Left"
+                       Increment="0.5" IsEnabled="{Binding !IsReadOnly}" />
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:DropdownFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <StackPanel>
+          <ComboBox IsVisible="{Binding HasOptions}" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left"
+                    ItemsSource="{Binding Options}" SelectedItem="{Binding SelectedOption, Mode=TwoWay}"
+                    MaxDropDownHeight="400" />
+          <NumericUpDown IsVisible="{Binding !HasOptions}" MinWidth="110" MaxWidth="220"
+                         HorizontalAlignment="Left"
+                         Value="{Binding RawValue, Mode=OneWay}" FormatString="0" Increment="1"
+                         IsEnabled="False"
+                         ToolTip.Tip="{Binding Texts.LookupUnavailableTooltip}" />
+          <TextBlock IsVisible="{Binding !HasOptions}"
+                     Text="{Binding LookupUnavailableMessage}"
+                     Classes="dim" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:ScriptFieldViewModel">
+      <StackPanel Margin="0,2">
+        <behaviors:LabeledFieldPanel>
+          <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                     Classes="dim" TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="*,Auto,Auto">
+            <TextBox Grid.Column="0" Text="{Binding Text, Mode=TwoWay}"
+                     FontFamily="{DynamicResource MonoFont}" />
+            <Button Grid.Column="1" Content="{Binding Texts.BrowseScript}" Margin="4,0,0,0" Padding="8,4"
+                    Command="{Binding BrowseCommand}" IsVisible="{Binding CanBrowse}"
+                    ToolTip.Tip="{Binding Texts.BrowseScriptTooltip}" />
+            <Button Grid.Column="2" Content="{Binding Texts.OpenScript}" Margin="4,0,0,0" Padding="8,4"
+                    Command="{Binding OpenScriptCommand}" IsVisible="{Binding CanBrowse}"
+                    ToolTip.Tip="{Binding Texts.OpenScriptTooltip}" />
+          </Grid>
+        </behaviors:LabeledFieldPanel>
+        <!-- A slot naming a script that does not exist is a live, otherwise invisible bug across
+             every module resource that names one. -->
+        <TextBlock Margin="0,2,0,0" FontSize="11" TextWrapping="Wrap"
+                   Foreground="{DynamicResource AmberBrush}"
+                   IsVisible="{Binding IsMissing}" Text="{Binding MissingMessage}" />
+      </StackPanel>
+    </DataTemplate>
+
+    <!-- A resref that names another module resource. Editable text with the real list attached, so
+         a value from a hak stays typeable and an unknown one says so rather than being rejected. -->
+    <DataTemplate DataType="fields:ResourcePickerFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <StackPanel>
+          <AutoCompleteBox Text="{Binding Text, Mode=TwoWay}"
+                           ItemsSource="{Binding Choices}" FilterMode="Contains"
+                           FontFamily="Consolas,monospace" />
+          <TextBlock Text="{Binding UnknownHint}" Classes="label"
+                     Foreground="{DynamicResource AmberBrush}" Margin="0,3,0,0"
+                     IsVisible="{Binding IsUnknown}" TextWrapping="Wrap" />
+        </StackPanel>
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="fields:TextFieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <TextBox Text="{Binding Text, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" />
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+
+    <!-- A kind this control does not draw stops here rather than climbing back to a host template
+         that hosts this control again. -->
+    <DataTemplate DataType="fields:FieldViewModel">
+      <behaviors:LabeledFieldPanel Margin="0,2">
+        <TextBlock Text="{Binding Label}" VerticalAlignment="Top" Margin="0,7,0,0"
+                   Classes="dim" TextWrapping="Wrap" />
+        <Panel />
+      </behaviors:LabeledFieldPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <ContentControl Content="{Binding}" />
+</UserControl>

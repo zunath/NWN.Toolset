@@ -1,0 +1,13 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="using:Dock.Model.Core">
+  <DockFluentTheme DensityStyle="Compact" />
+  <Style Selector="ToolControl">
+    <Setter Property="HeaderTemplate">
+      <DataTemplate DataType="core:IDockable">
+        <TextBlock Text="{Binding Title}" Padding="2" />
+      </DataTemplate>
+    </Setter>
+  </Style>
+  <StyleInclude Source="avares://Nwn.Toolset.Avalonia/Styles/ToolsetTheme.axaml" />
+</Styles>

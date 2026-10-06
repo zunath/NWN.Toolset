@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             x:Class="Nwn.Toolset.Avalonia.Areas.AreaInstanceDetailForm"
+             x:DataType="areas:IAreaInstanceDetailFormState"
+             IsVisible="{Binding ., Converter={x:Static ObjectConverters.IsNotNull}}">
+  <StackPanel Spacing="4">
+    <Grid ColumnDefinitions="60,*" ColumnSpacing="6"
+          IsVisible="{Binding UsesGenericDetailEditor}">
+      <TextBlock Grid.Column="0" Text="{Binding InstanceLabels.Tag}" VerticalAlignment="Center" />
+      <TextBox x:Name="TagInput" Grid.Column="1" Text="{Binding DetailTag, Mode=TwoWay}" />
+    </Grid>
+    <WrapPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.X}" MinWidth="14" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="XInput" Width="100" Value="{Binding DetailX, Mode=TwoWay}" Increment="0.5" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.Y}" MinWidth="14" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="YInput" Width="100" Value="{Binding DetailY, Mode=TwoWay}" Increment="0.5" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.Z}" MinWidth="14" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="ZInput" Width="100" Value="{Binding DetailZ, Mode=TwoWay}" Increment="0.5" />
+      </StackPanel>
+    </WrapPanel>
+    <WrapPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.FacingX}" MinWidth="60" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="FacingXInput" Width="100" Value="{Binding DetailXOrientation, Mode=TwoWay}" Increment="0.1" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.FacingY}" MinWidth="60" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="FacingYInput" Width="100" Value="{Binding DetailYOrientation, Mode=TwoWay}" Increment="0.1" />
+      </StackPanel>
+    </WrapPanel>
+    <WrapPanel IsVisible="{Binding HasTriggerGeometry}">
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.Width}" MinWidth="60" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="WidthInput" Width="100" Value="{Binding DetailTriggerWidth, Mode=TwoWay}" Increment="0.5" Minimum="0.1" />
+      </StackPanel>
+      <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,8,4">
+        <TextBlock Text="{Binding InstanceLabels.Height}" MinWidth="60" VerticalAlignment="Center" />
+        <NumericUpDown x:Name="HeightInput" Width="100" Value="{Binding DetailTriggerHeight, Mode=TwoWay}" Increment="0.5" Minimum="0.1" />
+      </StackPanel>
+    </WrapPanel>
+  </StackPanel>
+</UserControl>

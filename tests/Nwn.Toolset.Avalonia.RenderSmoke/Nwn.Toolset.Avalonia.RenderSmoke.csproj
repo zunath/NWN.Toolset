@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Nwn.Toolset.Avalonia.RenderSmoke</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.17" />
+    <ProjectReference Include="..\..\src\Nwn.Toolset.Avalonia\Nwn.Toolset.Avalonia.csproj" />
+  </ItemGroup>
+</Project>

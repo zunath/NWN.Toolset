@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nwn.Preview</RootNamespace>
+    <Description>CPU-side previews for Neverwinter Nights tools: TGA, DDS and PLT decoding, native model animation sampling and scene preparation, area scene composition and picking, thumbnails and type icons. No GPU or UI dependency.</Description>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nwn.Formats/Nwn.Formats.csproj" />
+    <ProjectReference Include="../Nwn.Authoring/Nwn.Authoring.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../licenses/SWLOR-MIT.txt" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+</Project>

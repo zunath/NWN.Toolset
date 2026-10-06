@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nwn.Preview.Tests</RootNamespace>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.4.1" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Nwn.Authoring/Nwn.Authoring.csproj" />
+    <ProjectReference Include="../../src/Nwn.Preview/Nwn.Preview.csproj" />
+    <ProjectReference Include="../../src/Nwn.Formats/Nwn.Formats.csproj" />
+  </ItemGroup>
+</Project>

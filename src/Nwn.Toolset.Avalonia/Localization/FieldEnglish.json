@@ -1,0 +1,17 @@
+{
+  "ChangeField": "Change {0}",
+  "ToggleField": "Toggle {0}",
+  "StrRef": "strref {0}",
+  "StrRefResolved": "strref {0} - “{1}”",
+  "OpenTlkRow": "Open TLK row",
+  "OpenTlkRowTooltip": "Open this custom StrRef in the TLK Editor",
+  "NoneOption": "(None)",
+  "LookupUnavailable": "2DA metadata unavailable. The stored value is shown read-only.",
+  "LookupUnavailableTooltip": "2DA metadata unavailable; stored value shown read-only.",
+  "BrowseScript": "...",
+  "BrowseScriptTooltip": "Browse module scripts",
+  "OpenScript": "Open",
+  "OpenScriptTooltip": "Open this script in an editor tab",
+  "MissingScript": "'{0}' does not exist in this module.",
+  "UnknownResource": "Nothing in the module has this name. It may come from a hak, or it may be a typo."
+}

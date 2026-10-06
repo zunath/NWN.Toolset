@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             x:Class="Nwn.Toolset.Avalonia.Areas.AreaCameraControls"
+             x:DataType="areas:AreaCameraControls">
+  <UserControl.Styles>
+    <Style Selector="RepeatButton.pad">
+      <Setter Property="Delay" Value="16" />
+      <Setter Property="Interval" Value="16" />
+    </Style>
+    <Style Selector="Button.pad, RepeatButton.pad">
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="24" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <WrapPanel Orientation="Horizontal">
+    <RepeatButton Classes="pad" Content="&#x2190;" ToolTip.Tip="{Binding PanLeftText}" Click="OnPanLeft" />
+    <RepeatButton Classes="pad" Content="&#x2192;" ToolTip.Tip="{Binding PanRightText}" Click="OnPanRight" />
+    <RepeatButton Classes="pad" Content="&#x2191;" ToolTip.Tip="{Binding PanUpText}" Click="OnPanUp" />
+    <RepeatButton Classes="pad" Content="&#x2193;" ToolTip.Tip="{Binding PanDownText}" Click="OnPanDown" />
+
+    <Border Width="1" Margin="4,2" Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+
+    <RepeatButton Classes="pad" Content="&#x21BA;" ToolTip.Tip="{Binding OrbitLeftText}" Click="OnOrbitLeft" />
+    <RepeatButton Classes="pad" Content="&#x21BB;" ToolTip.Tip="{Binding OrbitRightText}" Click="OnOrbitRight" />
+    <RepeatButton Classes="pad" Content="&#x2B71;" ToolTip.Tip="{Binding OrbitUpText}" Click="OnOrbitUp" />
+    <RepeatButton Classes="pad" Content="&#x2B73;" ToolTip.Tip="{Binding OrbitDownText}" Click="OnOrbitDown" />
+
+    <Border Width="1" Margin="4,2" Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+
+    <RepeatButton Classes="pad" Content="+" ToolTip.Tip="{Binding ZoomInText}" Click="OnZoomIn" />
+    <RepeatButton Classes="pad" Content="&#x2212;" ToolTip.Tip="{Binding ZoomOutText}" Click="OnZoomOut" />
+
+    <Border Width="1" Margin="4,2" Background="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+
+    <Button Classes="pad" Content="&#x2302;" Click="OnReorient"
+            ToolTip.Tip="{Binding ReorientText}" />
+  </WrapPanel>
+</UserControl>

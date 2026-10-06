@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:triggers="using:Nwn.Toolset.Avalonia.Triggers"
+             xmlns:sharedBehaviors="using:Nwn.Toolset.Avalonia.Behaviors"
+             xmlns:variables="using:Nwn.Toolset.Avalonia.Variables"
+             x:Class="Nwn.Toolset.Avalonia.Triggers.Views.TriggerBehaviorEditorView"
+             x:CompileBindings="True"
+             x:DataType="triggers:TriggerBehaviorEditorViewModel">
+
+  <UserControl.DataTemplates>
+    <!-- The trigger form needs nothing beyond the shared row, which a conditional row hides. -->
+    <DataTemplate DataType="triggers:TriggerRowViewModel">
+      <StackPanel Margin="4,1" IsVisible="{Binding IsVisible}">
+        <sharedBehaviors:BehaviorRowView />
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.DataTemplates>
+
+  <DockPanel>
+  <TextBlock DockPanel.Dock="Bottom" Margin="16,6,16,10" Text="{Binding Incomplete}"
+             Foreground="{DynamicResource AmberBrush}" TextWrapping="Wrap" IsVisible="{Binding IsIncomplete}" />
+  <TabControl>
+    <TabItem Header="{Binding Texts.TabBasic}">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding BasicRows}" Margin="14,10" />
+      </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="{Binding Texts.TabBehavior}">
+      <Grid ColumnDefinitions="210,*">
+        <sharedBehaviors:BehaviorRailView Grid.Column="0" Items="{Binding BehaviorList}"
+                                          ChooseCommand="{Binding ChooseBehaviorCommand}" />
+
+        <ScrollViewer Grid.Column="1" BorderBrush="{DynamicResource RuleBrush}"
+                      BorderThickness="1,0,0,0">
+          <Border Classes="card" Margin="8,12">
+            <StackPanel>
+              <TextBlock Text="{Binding HeaderName}" Classes="section" Margin="16,12,16,2" />
+              <TextBlock Text="{Binding Behavior.Summary}" Classes="dim" Margin="16,0,16,8"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding Behavior.Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+              <ItemsControl ItemsSource="{Binding BehaviorRows}" Margin="8,2,8,8" />
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </Grid>
+    </TabItem>
+
+    <TabItem Header="{Binding Texts.TabVariables}" IsVisible="{Binding ShowsVariablesTab}">
+      <variables:VarTableSectionView DataContext="{Binding Variables}" />
+    </TabItem>
+  </TabControl>
+  </DockPanel>
+</UserControl>

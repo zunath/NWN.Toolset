@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nwn.Toolset.Avalonia</RootNamespace>
+    <Description>Reusable Avalonia and OpenGL controls for Neverwinter Nights authoring tools: area and model viewports, area editor forms, palettes, module explorer, appearance gallery, field, variable, sound, door, waypoint and trigger editors, and Dock-based tool layout.</Description>
+    <IsPackable>true</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.17" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.13" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Dock.Avalonia" Version="11.3.12.1" />
+    <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="11.3.12.1" />
+    <PackageReference Include="Dock.Model.Mvvm" Version="11.3.12.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nwn.Authoring/Nwn.Authoring.csproj" />
+    <ProjectReference Include="../Nwn.Preview/Nwn.Preview.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nwn.Toolset.Avalonia.Tests" />
+    <EmbeddedResource Include="Localization/BehaviorRowEnglish.json" />
+    <EmbeddedResource Include="Localization/SoundListEnglish.json" />
+    <EmbeddedResource Include="Localization/VarTableEnglish.json" />
+    <EmbeddedResource Include="Localization/AreaEditorEnglish.json" />
+    <EmbeddedResource Include="Localization/AreaSelectionEnglish.json" />
+    <EmbeddedResource Include="Localization/AreaContentsEnglish.json" />
+    <EmbeddedResource Include="Localization/PaletteEnglish.json" />
+    <EmbeddedResource Include="Localization/PaletteWorkflowEnglish.json" />
+    <EmbeddedResource Include="Localization/AppearanceGalleryEnglish.json" />
+    <EmbeddedResource Include="Localization/ModuleExplorerEnglish.json" />
+    <EmbeddedResource Include="Localization/FieldEnglish.json" />
+    <EmbeddedResource Include="Localization/BehaviorEditorEnglish.json" />
+    <EmbeddedResource Include="Localization/AreaPropertiesEnglish.json" />
+    <EmbeddedResource Include="Localization/AreaGeneratorEnglish.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../licenses/SWLOR-MIT.txt" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+</Project>

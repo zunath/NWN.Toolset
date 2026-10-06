@@ -1,0 +1,16 @@
+{
+  "Name": "Name",
+  "Type": "Type",
+  "Value": "Value",
+  "VariableName": "Variable name",
+  "Set": "Set",
+  "Remove": "Remove",
+  "NameRequired": "Variable name is required.",
+  "DedicatedEditor": "This variable has a dedicated editor on another tab.",
+  "InvalidEncoding": "Variable names and string values may only contain Windows-1252 characters.",
+  "StringApplyFailed": "The string variable could not be applied.",
+  "InvalidValue": "'{0}' is not a valid {1}.",
+  "SetVariable": "Set local {0}",
+  "RemoveVariable": "Remove local {0}",
+  "UnsupportedType": "type {0}"
+}

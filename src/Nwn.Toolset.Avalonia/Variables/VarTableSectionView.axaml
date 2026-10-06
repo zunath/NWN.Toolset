@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:variables="using:Nwn.Toolset.Avalonia.Variables"
+             x:Class="Nwn.Toolset.Avalonia.Variables.VarTableSectionView"
+             x:DataType="variables:VarTableSectionViewModel">
+  <StackPanel Margin="8,4" Spacing="6">
+    <DataGrid ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+              AutoGenerateColumns="False" IsReadOnly="True" MaxHeight="320" GridLinesVisibility="Horizontal">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="{Binding NameLabel}" Binding="{Binding Name}" Width="2*" />
+        <DataGridTextColumn Header="{Binding TypeLabel}" Binding="{Binding TypeLabel}" Width="*" />
+        <DataGridTextColumn Header="{Binding ValueLabel}" Binding="{Binding Value}" Width="2*" />
+      </DataGrid.Columns>
+    </DataGrid>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+      <AutoCompleteBox Grid.Column="0" Text="{Binding NewName, Mode=TwoWay}" ItemsSource="{Binding KnownKeys}" Watermark="{Binding NameWatermark}" />
+      <ComboBox Grid.Column="1" MinWidth="96" ItemsSource="{Binding TypeChoices}" SelectedItem="{Binding NewType, Mode=TwoWay}" />
+    </Grid>
+    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+      <TextBox Grid.Column="0" Text="{Binding NewValue, Mode=TwoWay}" Watermark="{Binding ValueLabel}" />
+      <Button Grid.Column="1" Content="{Binding SetLabel}" Command="{Binding SetVariableCommand}" />
+      <Button Grid.Column="2" Content="{Binding RemoveLabel}" Command="{Binding RemoveSelectedCommand}" />
+    </Grid>
+    <TextBlock Text="{Binding ValidationHint}" Foreground="Orange" TextWrapping="Wrap" IsVisible="{Binding ValidationHint, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+  </StackPanel>
+</UserControl>

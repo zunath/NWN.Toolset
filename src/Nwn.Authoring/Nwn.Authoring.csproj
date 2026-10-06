@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Nwn.Authoring</RootNamespace>
+    <Description>Authoring model for Neverwinter Nights tools: layered resource resolution, undoable GFF document sessions and file transactions, area creation, editing, tile painting, procedural area generation and placement, palette categories, creature/item/placeable model resolution, and door, waypoint, sound and trigger data.</Description>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Nwn.Formats/Nwn.Formats.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="../../licenses/SWLOR-MIT.txt" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+</Project>

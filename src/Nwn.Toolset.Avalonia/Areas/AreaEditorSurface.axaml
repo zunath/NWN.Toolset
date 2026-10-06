@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:areas="using:Nwn.Toolset.Avalonia.Areas"
+             x:Class="Nwn.Toolset.Avalonia.Areas.AreaEditorSurface">
+  <Grid>
+    <areas:AreaViewportControl x:Name="ViewportControl" />
+    <Border Background="Transparent"
+            PointerPressed="OnPointerPressed"
+            PointerMoved="OnPointerMoved"
+            PointerExited="OnPointerExited"
+            PointerReleased="OnPointerReleased"
+            PointerWheelChanged="OnPointerWheelChanged" />
+  </Grid>
+</UserControl>

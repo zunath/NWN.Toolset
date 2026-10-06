@@ -1,0 +1,10 @@
+{
+  "DefaultNoun": "model",
+  "NoMatches": "No {0}s match",
+  "OneMatch": "{0} {1}",
+  "ManyMatches": "{0} {1}s",
+  "PartialMatches": "{0} of {1} {2}s",
+  "SearchWatermark": "Search {0}s by name or ResRef",
+  "UnknownCurrent": "{0} — not in the table",
+  "CurrentWithDetail": "{0}  ·  {1}"
+}

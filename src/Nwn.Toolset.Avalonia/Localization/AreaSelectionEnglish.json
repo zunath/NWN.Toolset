@@ -1,0 +1,8 @@
+{
+  "OpenProperties": "Open properties...",
+  "OpenPropertiesTooltip": "Edit this placed object's instance properties",
+  "EditBlueprint": "Edit blueprint...",
+  "EditBlueprintTooltip": "Open the blueprint this was placed from",
+  "EditCopy": "Edit Copy...",
+  "EditCopyTooltip": "Create and edit a new Custom blueprint from this object's source"
+}
