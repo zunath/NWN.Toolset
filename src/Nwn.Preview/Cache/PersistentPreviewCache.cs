@@ -14,6 +14,8 @@ public sealed class PersistentPreviewCache
     private readonly string _renderVersion;
     private readonly long _maximumBytes;
     private readonly string _budgetRoot;
+    private bool _budgetChecked;
+    private long _bytesSinceBudgetCheck;
 
     public PersistentPreviewCache(string root, string renderVersion, long maximumBytes, string? budgetRoot = null)
     {
@@ -162,12 +164,21 @@ public sealed class PersistentPreviewCache
                     writer.Write(SHA256.HashData(payload));
                     writer.Write(payload.Length);
                     writer.Write(payload);
+                    // No flush-to-disk: an entry torn by a crash fails its payload hash on the next
+                    // read and is re-rendered, which is cheaper than syncing every thumbnail.
                     writer.Flush();
-                    stream.Flush(flushToDisk: true);
                 }
                 File.Move(temporary, path, overwrite: true);
                 temporary = null;
-                EnforceBudget(path);
+                // Checking the budget lists every cached file, so do it on the first write and then
+                // once per twentieth of the budget written rather than after every thumbnail.
+                _bytesSinceBudgetCheck += payload.Length;
+                if (!_budgetChecked || _bytesSinceBudgetCheck >= Math.Max(1, _maximumBytes / 20))
+                {
+                    EnforceBudget(path);
+                    _budgetChecked = true;
+                    _bytesSinceBudgetCheck = 0;
+                }
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {

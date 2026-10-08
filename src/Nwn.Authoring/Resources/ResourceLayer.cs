@@ -87,8 +87,7 @@ public sealed class ResourceLayer : IDisposable
                     var limit = Math.Min(readOptions.MaximumResourceBytes, maximumBytes);
                     if (entry.Size > limit || entry.Size > Array.MaxLength)
                         throw new FormatException($"ERF resource '{entry.ResRef}' is {entry.Size} bytes; configured limit is {limit}.");
-                    using var readArchive = ErfArchive.Open(archivePath);
-                    return readArchive.ReadAllBytes(entry);
+                    return ReadErfEntry(archivePath, entry);
                 });
         }
         layer.ValidateDuplicates();
@@ -177,6 +176,26 @@ public sealed class ResourceLayer : IDisposable
     }
 
     private static DateTime Max(DateTime left, DateTime right) => left >= right ? left : right;
+
+    // Reads one indexed entry by offset. Re-parsing the archive's key and resource lists on every
+    // read cost each texture, model and 2DA lookup a full header scan of a multi-thousand-entry HAK.
+    private static byte[] ReadErfEntry(string archivePath, ErfEntry entry)
+    {
+        using var handle = File.OpenHandle(archivePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var length = RandomAccess.GetLength(handle);
+        if (entry.Offset > length || entry.Size > length - entry.Offset)
+            throw new FormatException($"ERF resource '{entry.ResRef}' no longer fits within '{archivePath}' (length {length}).");
+        var bytes = new byte[checked((int)entry.Size)];
+        var read = 0;
+        while (read < bytes.Length)
+        {
+            var count = RandomAccess.Read(handle, bytes.AsSpan(read), entry.Offset + read);
+            if (count == 0)
+                throw new EndOfStreamException($"ERF resource '{entry.ResRef}' ended early in '{archivePath}'.");
+            read += count;
+        }
+        return bytes;
+    }
 
     private static byte[] ReadFileBounded(string path, long maximumBytes, string description)
     {

@@ -13,7 +13,7 @@
        -p:NwnToolsetVersion=...). Inter-package dependencies resolve to this same version
        because they are ProjectReferences packed from the same build. -->
   <PropertyGroup>
-    <NwnToolsetVersion Condition="'$(NwnToolsetVersion)' == ''">0.1.0-preview.1</NwnToolsetVersion>
+    <NwnToolsetVersion Condition="'$(NwnToolsetVersion)' == ''">0.1.0-preview.2</NwnToolsetVersion>
     <Version Condition="'$(Version)' == ''">$(NwnToolsetVersion)</Version>
   </PropertyGroup>
 
