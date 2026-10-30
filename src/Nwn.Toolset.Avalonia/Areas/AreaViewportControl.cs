@@ -4,6 +4,7 @@ using Nwn.Preview.Scene;
 using System.Numerics;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
@@ -1416,6 +1417,7 @@ void main()
             var props = e.GetCurrentPoint(this).Properties;
             var shift = (e.KeyModifiers & KeyModifiers.Shift) != 0;
             var alt = (e.KeyModifiers & KeyModifiers.Alt) != 0;
+            var ctrl = (e.KeyModifiers & KeyModifiers.Control) != 0;
             var pos = e.GetPosition(this);
 
             // In placement mode, a right-click cancels rather than panning the camera.
@@ -1453,7 +1455,7 @@ void main()
             // grab and start dragging whatever the cursor happens to be over.
             if (_dragMode is DragMode.Orbit or DragMode.Pan)
             {
-                _dragMode = CameraDragFor(props, shift) ?? _dragMode;
+                _dragMode = CameraDragFor(props, shift, ctrl) ?? _dragMode;
                 _lastPointerPos = pos;
                 e.Handled = true;
                 return;
@@ -1481,8 +1483,9 @@ void main()
 
             // Aurora's mapping, measured against the toolset itself with each case driven from the
             // same starting view and undone afterwards: middle alone orbits, middle and left together
-            // pan, the wheel zooms, and left alone belongs to the objects. Right does nothing.
-            if (CameraDragFor(props, shift) is { } cameraDrag)
+            // pan, the wheel zooms, and left alone belongs to the objects. Right does nothing. Ctrl+left
+            // pans too, except on the selection, where Ctrl is still the grid snap for a move.
+            if (CameraDragFor(props, shift, ctrl) is { } cameraDrag)
                 _dragMode = cameraDrag;
             else if (props.IsLeftButtonPressed)
                 _dragMode = DragMode.Select;
@@ -1504,14 +1507,18 @@ void main()
         /// </summary>
         /// <remarks>
         /// Middle and left together pan, middle alone orbits - Aurora's arrangement. Shift+left also
-        /// orbits, as the path for a trackpad with no middle button.
+        /// orbits and Ctrl+left pans, as the paths for a trackpad with no middle button.
         /// </remarks>
-        private static DragMode? CameraDragFor(global::Avalonia.Input.PointerPointProperties props, bool shift)
+        private static DragMode? CameraDragFor(
+            global::Avalonia.Input.PointerPointProperties props, bool shift, bool ctrl)
         {
             if (props.IsMiddleButtonPressed)
                 return props.IsLeftButtonPressed ? DragMode.Pan : DragMode.Orbit;
 
-            return props.IsLeftButtonPressed && shift ? DragMode.Orbit : null;
+            if (!props.IsLeftButtonPressed)
+                return null;
+
+            return shift ? DragMode.Orbit : ctrl ? DragMode.Pan : null;
         }
 
         public void HandlePointerMoved(PointerEventArgs e)
@@ -1543,7 +1550,8 @@ void main()
             // which is how it behaves in Aurora.
             if (_dragMode is DragMode.Orbit or DragMode.Pan or DragMode.Select &&
                 CameraDragFor(e.GetCurrentPoint(this).Properties,
-                    (e.KeyModifiers & KeyModifiers.Shift) != 0) is { } liveDrag)
+                    (e.KeyModifiers & KeyModifiers.Shift) != 0,
+                    (e.KeyModifiers & KeyModifiers.Control) != 0) is { } liveDrag)
                 _dragMode = liveDrag;
 
             var pos = pointerPos;
@@ -1567,11 +1575,13 @@ void main()
                     // A stalled frame must not bank up into one huge jump.
                     var step = (float)Math.Clamp(seconds, 0.0, 0.05);
 
+                    // The scene turns with the drag, as if grabbed: a rightward drag carries the camera
+                    // left around the target, and a downward one lifts it to look down from higher.
                     if (dx != 0f)
-                        _azimuth += MathF.Sign(dx) * OrbitYawDegreesPerSecond * DegreesToRadians * step;
+                        _azimuth -= MathF.Sign(dx) * OrbitYawDegreesPerSecond * DegreesToRadians * step;
                     if (dy != 0f)
                         _elevation = AreaCameraMath.ClampElevation(
-                            _elevation - MathF.Sign(dy) * OrbitPitchDegreesPerSecond * DegreesToRadians * step);
+                            _elevation + MathF.Sign(dy) * OrbitPitchDegreesPerSecond * DegreesToRadians * step);
                     break;
                 }
 
@@ -2456,6 +2466,62 @@ void main()
             RequestNextFrameRendering();
         }
 
+        /// <summary>WASD keys currently held, and the timer that slides the view while any is.</summary>
+        private readonly HashSet<Key> _heldPanKeys = [];
+        private DispatcherTimer? _keyPanTimer;
+
+        /// <summary>
+        /// Starts or stops sliding the view for a W, A, S or D key, at the pad's
+        /// <see cref="PanPixelsPerSecond"/>. False for any other key, or one with Ctrl, Alt or Meta held,
+        /// so shortcuts such as Ctrl+S still reach the shell.
+        /// </summary>
+        private bool TrackPanKey(Key key, KeyModifiers modifiers, bool isDown)
+        {
+            if (key is not (Key.W or Key.A or Key.S or Key.D))
+                return false;
+
+            if (isDown)
+            {
+                if ((modifiers & (KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Meta)) != 0)
+                    return false;
+
+                // A new press after a pause starts a fresh clock, so it moves one frame, not the gap.
+                if (_heldPanKeys.Count == 0)
+                    _lastPadTicks = 0;
+                _heldPanKeys.Add(key);
+                _keyPanTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Input,
+                    (_, _) => StepKeyPan());
+                if (!_keyPanTimer.IsEnabled)
+                {
+                    StepKeyPan();
+                    _keyPanTimer.Start();
+                }
+
+                return true;
+            }
+
+            if (!_heldPanKeys.Remove(key))
+                return false;
+
+            if (_heldPanKeys.Count == 0)
+                _keyPanTimer?.Stop();
+            return true;
+        }
+
+        private void StepKeyPan()
+        {
+            var right = (_heldPanKeys.Contains(Key.D) ? 1f : 0f) - (_heldPanKeys.Contains(Key.A) ? 1f : 0f);
+            var forward = (_heldPanKeys.Contains(Key.W) ? 1f : 0f) - (_heldPanKeys.Contains(Key.S) ? 1f : 0f);
+            if (right != 0f || forward != 0f)
+                NudgePan(right, forward);
+        }
+
+        private void ReleasePanKeys()
+        {
+            _heldPanKeys.Clear();
+            _keyPanTimer?.Stop();
+        }
+
         /// <summary>Turns the view around the point it is looking at, at <see cref="OrbitDegreesPerSecondPad"/>.</summary>
         public void NudgeOrbit(float azimuthDirection, float elevationDirection)
         {
@@ -2630,11 +2696,17 @@ void main()
         /// <summary>
         /// Esc cancels an in-progress manipulation drag (reverting to the instance's real
         /// position/heading), an active object placement, or an armed tile placement. R turns an
-        /// armed tile a quarter turn before it is stamped.
+        /// armed tile a quarter turn before it is stamped. W, A, S and D slide the view while held.
         /// </summary>
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
+
+            if (TrackPanKey(e.Key, e.KeyModifiers, isDown: true))
+            {
+                e.Handled = true;
+                return;
+            }
 
             if (e.Key == Key.R && _isTilePlacementActive)
             {
@@ -2668,6 +2740,27 @@ void main()
                 e.Handled = true;
                 return;
             }
+        }
+
+        protected override void OnKeyUp(KeyEventArgs e)
+        {
+            base.OnKeyUp(e);
+
+            if (TrackPanKey(e.Key, e.KeyModifiers, isDown: false))
+                e.Handled = true;
+        }
+
+        // A key released while focus is elsewhere never reaches OnKeyUp, so the view would keep sliding.
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            base.OnLostFocus(e);
+            ReleasePanKeys();
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            ReleasePanKeys();
+            base.OnDetachedFromVisualTree(e);
         }
 
         // ----- GL lifecycle -----

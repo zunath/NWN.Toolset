@@ -23,6 +23,9 @@ public sealed class AreaSelectionContextMenuTests
             var menu = (AreaSelectionContextMenu)host.ContextMenu!;
             menu.Open(host);
             Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Assert.IsNotNull(menu.Template, "The subclass must pick up the theme's ContextMenu template.");
+            Assert.IsTrue(menu.Bounds.Width > 0 && menu.Bounds.Height > 0, "An untemplated menu opens at zero size.");
 
             var items = menu.Items.OfType<MenuItem>().ToArray();
             Assert.AreEqual(5, items.Length);
