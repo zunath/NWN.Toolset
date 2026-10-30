@@ -10,6 +10,9 @@ namespace Nwn.Toolset.Avalonia.Areas;
 /// <summary>The area selection menu, with selection state and actions supplied by the host.</summary>
 public sealed class AreaSelectionContextMenu : ContextMenu
 {
+    // Themes are keyed by type: without this the subclass finds no ContextMenu template and opens at zero size.
+    protected override Type StyleKeyOverride => typeof(ContextMenu);
+
     public AreaSelectionContextMenu(IAreaSelectionContextMenuState state, AreaSelectionTexts? texts = null)
     {
         ArgumentNullException.ThrowIfNull(state);

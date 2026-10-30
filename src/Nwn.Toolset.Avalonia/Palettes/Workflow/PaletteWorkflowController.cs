@@ -34,6 +34,9 @@ public sealed partial class PaletteWorkflowController : ObservableObject, IPalet
     private readonly Dictionary<PaletteEntryId, PaletteEntrySnapshot> _presentationEntries = new();
     private readonly bool _constructed;
 
+    /// <summary>Whether the blueprint entries on screen were projected with an area to place into.</summary>
+    private bool _projectedCanPlace;
+
     /// <summary>
     /// True while saved preferences are being applied, so restoring one neither writes it straight back
     /// nor rebuilds a tree that has not been built yet.
@@ -265,13 +268,17 @@ public sealed partial class PaletteWorkflowController : ObservableObject, IPalet
     }
 
     /// <summary>
-    /// The area in front changed. Only Tiles mode cares: blueprints are the module's, the same whichever
-    /// tab has focus, while a tileset belongs to one area.
+    /// The area in front changed. Tiles mode rebuilds, because a tileset belongs to one area. Blueprints
+    /// are the module's, the same whichever tab has focus, but whether they can be placed is not: entries
+    /// projected while no area was open would otherwise ignore every click until something else rebuilt
+    /// the grid.
     /// </summary>
     public void OnActiveAreaChanged()
     {
         if (IsTileMode)
             RefreshTiles();
+        else if (_projectedCanPlace != (_host.Placement?.ActiveTarget is not null))
+            PublishPresentationSnapshot();
     }
 
     public void SelectType(PaletteTypeOption type)
@@ -617,6 +624,7 @@ public sealed partial class PaletteWorkflowController : ObservableObject, IPalet
 
         var names = new PaletteEntryNames(_host.Content, SelectedType, Source);
         var canPlace = _host.Placement?.ActiveTarget is not null;
+        _projectedCanPlace = canPlace;
         foreach (var resRef in _existing)
         {
             var entry = CreateBlueprintEntry(resRef, section, names, canPlace);

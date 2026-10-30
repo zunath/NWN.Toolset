@@ -34,6 +34,27 @@ public sealed class PaletteWorkflowEntryTests
     }
 
     [TestMethod]
+    public void EntriesListedBeforeAnAreaOpenedBecomePlaceableWhenOneDoes()
+    {
+        using var palette = new PaletteWorkflowFixture();
+        palette.Content.AddCustom(ModuleResourceType.Utp, "crate", "Crate");
+        palette.Controller.Refresh();
+        palette.SelectRow("Unsorted");
+        Assert.IsFalse(palette.Tile("crate").Snapshot.Capabilities.CanPlace);
+
+        var target = new FakePalettePlacementTarget();
+        palette.Placement.ActiveTarget = target;
+        palette.Controller.OnActiveAreaChanged();
+        palette.State.PlaceCommand.Execute(palette.Tile("crate"));
+
+        Assert.AreEqual((ModuleResourceType.Utp, "crate", PaletteSource.Custom), target.Armed.Single());
+
+        palette.Placement.ActiveTarget = null;
+        palette.Controller.OnActiveAreaChanged();
+        Assert.IsFalse(palette.Tile("crate").Snapshot.Capabilities.CanPlace);
+    }
+
+    [TestMethod]
     public void EditCopyFilesTheCopyUnderTheMatchingCustomCategoryAndRevealsIt()
     {
         using var palette = new PaletteWorkflowFixture();
