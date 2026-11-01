@@ -12,5 +12,8 @@ namespace Nwn.Toolset.Avalonia.Areas
     /// blueprint's own default. Only a snapped placement supplies one: a door takes the heading of
     /// the doorway it landed in, because a door hung across its own frame is never what was meant.
     /// </param>
-    public readonly record struct PlacementPick(Vector3 Position, Vector2? Orientation);
+    public readonly record struct PlacementPick(Vector3 Position, Vector2? Orientation)
+    {
+        public bool KeepBrush { get; init; }
+    }
 }

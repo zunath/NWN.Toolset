@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+using Nwn.Authoring.Areas.Editing;
+
 namespace Nwn.Preview.Areas.Clipboard;
 
 /// <summary>The toolset-session clipboard for one placed area object.</summary>
@@ -10,11 +12,23 @@ namespace Nwn.Preview.Areas.Clipboard;
 /// </remarks>
 public sealed class AreaInstanceClipboard
 {
-    public AreaInstanceClipboardEntry? Content { get; private set; }
+    public AreaInstanceClipboardEntry? Content => Contents.FirstOrDefault();
+    public IReadOnlyList<AreaInstanceClipboardEntry> Contents { get; private set; } = Array.Empty<AreaInstanceClipboardEntry>();
+    public AreaTileClipboardEntry? Tiles { get; private set; }
 
-    public void Set(AreaInstanceClipboardEntry content)
+    public void Set(AreaInstanceClipboardEntry content) => Set(new[] { content });
+
+    public void Set(IReadOnlyList<AreaInstanceClipboardEntry> contents)
     {
-        ArgumentNullException.ThrowIfNull(content);
-        Content = content;
+        ArgumentNullException.ThrowIfNull(contents);
+        Contents = Array.AsReadOnly(contents.ToArray());
+        Tiles = null;
+    }
+
+    public void SetTiles(AreaTileClipboardEntry tiles)
+    {
+        ArgumentNullException.ThrowIfNull(tiles);
+        Tiles = tiles;
+        Contents = Array.Empty<AreaInstanceClipboardEntry>();
     }
 }

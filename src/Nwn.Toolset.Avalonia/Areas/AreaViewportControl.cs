@@ -28,7 +28,7 @@ namespace Nwn.Toolset.Avalonia.Areas
     /// around the current selection. This control still never mutates the scene or the underlying
     /// documents; editing happens through the view model's transaction paths.
     /// </summary>
-    public class AreaViewportControl : OpenGlControlBase
+    public partial class AreaViewportControl : OpenGlControlBase
     {
         static AreaViewportControl()
         {
@@ -639,7 +639,7 @@ void main()
         private Vector3 _framedTarget;
         private float? _framedDistance;
 
-        private enum DragMode { None, Orbit, Pan, Move, Rotate, Select }
+        private enum DragMode { None, Orbit, Pan, PanVertical, Move, Rotate, Select }
         private DragMode _dragMode = DragMode.None;
         private Point _lastPointerPos;
 
@@ -956,6 +956,9 @@ void main()
         public event Action<(int Column, int Row)?>? SelectedTileCellChanged;
 
         private IReadOnlyList<RenderModel?> _tilePlacementModels = Array.Empty<RenderModel?>();
+        public IReadOnlyList<int> TilePlacementOrientations { get; set; } = Array.Empty<int>();
+        public IReadOnlyList<float?> TilePlacementHeightOffsets { get; set; } = Array.Empty<float?>();
+
 
         /// <summary>
         /// The armed stamp's tile models, row-major over <see cref="TilePlacementFootprint"/>. Empty
@@ -1420,43 +1423,48 @@ void main()
             var ctrl = (e.KeyModifiers & KeyModifiers.Control) != 0;
             var pos = e.GetPosition(this);
 
-            // In placement mode, a right-click cancels rather than panning the camera.
-            if (_isPlacementActive && props.IsRightButtonPressed)
+            if (props.IsRightButtonPressed)
+                SuppressContextMenu = false;
+
+            // Camera chords take priority over placement and object manipulation.
+            if (CameraDragFor(props, ctrl) is { } navigation)
+            {
+                _dragMode = navigation;
+                _lastPointerPos = pos;
+                _pressStartPos = pos;
+                _isClickCandidate = false;
+                SuppressContextMenu = true;
+                Focus();
+                e.Pointer.Capture(this);
+                e.Handled = true;
+                return;
+            }
+
+            if (props.IsRightButtonPressed && (_isPlacementActive || _isTilePlacementActive))
             {
                 CancelPlacement();
-                e.Handled = true;
-                return;
-            }
-
-            // Same bargain for an armed tile: while a stamp is pending the right button is the way
-            // out of it. Outside placement the right button does nothing in the viewport, matching
-            // Aurora.
-            if (_isTilePlacementActive && props.IsRightButtonPressed)
-            {
                 CancelTilePlacement();
+                SuppressContextMenu = true;
                 e.Handled = true;
                 return;
             }
 
-            // Outside placement, a right press selects whatever is under the cursor so that the
-            // context menu the host opens from the same gesture describes the thing that was
-            // clicked, not whatever happened to be selected before. Deliberately NOT marked
-            // handled - the menu still has to open - and safe to fall out of, because the right
-            // button drives no camera drag.
             if (props.IsRightButtonPressed && _dragMode == DragMode.None)
             {
                 RaiseInstancePicked(pos);
-                return;
-            }
+                if (!shift)
+                    return;
 
-            // A camera drag already owns the pointer, so this press is the builder adding or
-            // swapping a button mid-drag - middle+left is pan, middle alone is orbit. Resolving it
-            // here rather than falling through matters: the left press would otherwise be read as a
-            // grab and start dragging whatever the cursor happens to be over.
-            if (_dragMode is DragMode.Orbit or DragMode.Pan)
-            {
-                _dragMode = CameraDragFor(props, shift, ctrl) ?? _dragMode;
-                _lastPointerPos = pos;
+                SuppressContextMenu = true;
+                if (_selectedInstance is { Kind: not InstanceMarkerKind.Sound and not InstanceMarkerKind.Door } selected)
+                {
+                    BeginManipulation(selected, DragMode.Rotate);
+                    _lastPointerPos = pos;
+                    Focus();
+                    e.Pointer.Capture(this);
+                }
+                else if (_selectedTileCell is { } cell)
+                    TileVariantRequested?.Invoke(cell.Column, cell.Row);
                 e.Handled = true;
                 return;
             }
@@ -1481,16 +1489,9 @@ void main()
                 return;
             }
 
-            // Aurora's mapping, measured against the toolset itself with each case driven from the
-            // same starting view and undone afterwards: middle alone orbits, middle and left together
-            // pan, the wheel zooms, and left alone belongs to the objects. Right does nothing. Ctrl+left
-            // pans too, except on the selection, where Ctrl is still the grid snap for a move.
-            if (CameraDragFor(props, shift, ctrl) is { } cameraDrag)
-                _dragMode = cameraDrag;
-            else if (props.IsLeftButtonPressed)
-                _dragMode = DragMode.Select;
-            else
+            if (!props.IsLeftButtonPressed)
                 return;
+            _dragMode = DragMode.Select;
 
             _lastPointerPos = pos;
             _pressStartPos = pos;
@@ -1502,23 +1503,18 @@ void main()
             e.Handled = true;
         }
 
-        /// <summary>
-        /// Which camera drag the current buttons ask for, or null when they ask for none.
-        /// </summary>
-        /// <remarks>
-        /// Middle and left together pan, middle alone orbits - Aurora's arrangement. Shift+left also
-        /// orbits and Ctrl+left pans, as the paths for a trackpad with no middle button.
-        /// </remarks>
+        public bool SuppressContextMenu { get; private set; }
+
+        public event Action<int, int>? TileVariantRequested;
+
         private static DragMode? CameraDragFor(
-            global::Avalonia.Input.PointerPointProperties props, bool shift, bool ctrl)
+            global::Avalonia.Input.PointerPointProperties props, bool ctrl)
         {
+            if (ctrl && props.IsLeftButtonPressed)
+                return props.IsRightButtonPressed ? DragMode.PanVertical : DragMode.Pan;
             if (props.IsMiddleButtonPressed)
                 return props.IsLeftButtonPressed ? DragMode.Pan : DragMode.Orbit;
-
-            if (!props.IsLeftButtonPressed)
-                return null;
-
-            return shift ? DragMode.Orbit : ctrl ? DragMode.Pan : null;
+            return null;
         }
 
         public void HandlePointerMoved(PointerEventArgs e)
@@ -1545,14 +1541,13 @@ void main()
             if (_dragMode == DragMode.None)
                 return;
 
-            // Re-read the buttons every move rather than trusting what the drag started as: pressing
-            // or releasing the second button part-way through a drag switches between orbit and pan,
-            // which is how it behaves in Aurora.
-            if (_dragMode is DragMode.Orbit or DragMode.Pan or DragMode.Select &&
+            if (_dragMode is DragMode.Orbit or DragMode.Pan or DragMode.PanVertical or DragMode.Select &&
                 CameraDragFor(e.GetCurrentPoint(this).Properties,
-                    (e.KeyModifiers & KeyModifiers.Shift) != 0,
                     (e.KeyModifiers & KeyModifiers.Control) != 0) is { } liveDrag)
+            {
                 _dragMode = liveDrag;
+                _isClickCandidate = false;
+            }
 
             var pos = pointerPos;
             var dx = (float)(pos.X - _lastPointerPos.X);
@@ -1594,6 +1589,11 @@ void main()
                     _target += AreaCameraMath.PanDelta(_azimuth, dx, dy, worldPerPixel);
                     break;
 
+                case DragMode.PanVertical:
+                    var verticalScale = AreaCameraMath.WorldUnitsPerPixel(_distance, VerticalFovRadians, _viewportHeight);
+                    _target.Z += dy * verticalScale;
+                    break;
+
                 case DragMode.Move:
                     UpdateMovePreview(pos, (e.KeyModifiers & KeyModifiers.Control) != 0);
                     break;
@@ -1623,6 +1623,16 @@ void main()
             if (_dragMode == DragMode.None)
                 return;
 
+            var remainingCamera = CameraDragFor(e.GetCurrentPoint(this).Properties,
+                (e.KeyModifiers & KeyModifiers.Control) != 0);
+            if (_dragMode is DragMode.Orbit or DragMode.Pan or DragMode.PanVertical && remainingCamera is { } continued)
+            {
+                _dragMode = continued;
+                _lastPointerPos = e.GetPosition(this);
+                e.Handled = true;
+                return;
+            }
+
             var releasePos = e.GetPosition(this);
             var wasClickCandidate = _isClickCandidate;
 
@@ -1640,12 +1650,18 @@ void main()
             var dragDistance = Math.Sqrt(dx * dx + dy * dy);
 
             if (dragDistance >= ClickDragThresholdPixels)
+            {
+                if (!_isPlacementActive && !_isTilePlacementActive)
+                    RaiseRectangleSelection(releasePos, (e.KeyModifiers & KeyModifiers.Shift) != 0);
                 return;
+            }
 
             if (_isPlacementActive)
-                RaisePlacementPointPicked(releasePos);
+                RaisePlacementPointPicked(releasePos, (e.KeyModifiers & KeyModifiers.Shift) != 0);
             else if (_isTilePlacementActive)
                 RaiseTileCellPicked(releasePos);
+            else if ((e.KeyModifiers & KeyModifiers.Shift) != 0)
+                RaiseAdditiveSelection(releasePos);
             else
                 RaiseInstancePicked(releasePos);
         }
@@ -1999,7 +2015,7 @@ void main()
         private TileDoorAnchor? NearestDoorAnchor(Vector3 groundPoint) =>
             Volatile.Read(ref _sceneState).Scene?.NearestEmptyDoorway(groundPoint);
 
-        private void RaisePlacementPointPicked(Point screenPos)
+        private void RaisePlacementPointPicked(Point screenPos, bool keepBrush)
         {
             var ray = TryBuildRay(screenPos);
             if (ray == null)
@@ -2022,13 +2038,13 @@ void main()
                 if (NearestDoorAnchor(hit) is not { } anchor)
                     return;
 
-                IsPlacementActive = false;
-                PlacementPointPicked?.Invoke(new PlacementPick(anchor.Position, anchor.Orientation));
+                if (!keepBrush) IsPlacementActive = false;
+                PlacementPointPicked?.Invoke(new PlacementPick(anchor.Position, anchor.Orientation) { KeepBrush = keepBrush });
                 return;
             }
 
-            IsPlacementActive = false;
-            PlacementPointPicked?.Invoke(new PlacementPick(hit, null));
+            if (!keepBrush) IsPlacementActive = false;
+            PlacementPointPicked?.Invoke(new PlacementPick(hit, null) { KeepBrush = keepBrush });
         }
 
         // ----- Paint-tiles-from-palette -----
@@ -3318,6 +3334,7 @@ void main()
             DrawDoorAnchors();
             DrawPlacementGhost();
             DrawSelectedTileCell(scene);
+            DrawStartDirections(scene);
             DrawTileCellHighlight(scene);
 
             _gl.BindVertexArray(0);
@@ -4030,11 +4047,15 @@ void main()
         /// </summary>
         private void DrawSelectionHighlight()
         {
-            if (_selectedInstance is not { } instance || _gl == null)
+            if (_gl == null || (_selectedInstance == null && _selectedInstances.Count == 0))
                 return;
 
-            var (min, max) = AreaPicking.ComputeInstanceWorldBounds(Displayed(instance), DrawsAsModel(instance));
-            var vertices = BuildWireframeBoxVertices(min, max);
+            var instances = _selectedInstances.Count > 0 ? _selectedInstances : new[] { _selectedInstance! };
+            var vertices = instances.SelectMany(instance =>
+            {
+                var (min, max) = AreaPicking.ComputeInstanceWorldBounds(Displayed(instance), DrawsAsModel(instance));
+                return BuildWireframeBoxVertices(min, max);
+            }).ToArray();
 
             EnsureHighlightBuffer();
             if (!_hasHighlightBuffer)
@@ -4053,7 +4074,7 @@ void main()
             SetUniformVec3("flatColor", SelectionHighlightColor);
             SetUniformMatrix4("model", Matrix4x4.Identity); // bounds are already world-space
 
-            _gl.DrawArrays(PrimitiveType.Lines, 0, 24);
+            _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)(vertices.Length / FloatsPerVertex));
         }
 
         /// <summary>
@@ -4103,12 +4124,20 @@ void main()
         /// inside the floor geometry drawn above it.
         /// </para>
         /// </remarks>
+        public IReadOnlyList<InstanceMarker> PlacementGhosts { get; set; } = Array.Empty<InstanceMarker>();
+
         private void DrawPlacementGhost()
         {
-            if (!_isPlacementActive || _placementGhost is not { } ghost || _ghostPosition is not { } position ||
-                _gl == null)
+            if (!_isPlacementActive || _placementGhost is not { } primary || _ghostPosition is not { } position || _gl == null)
                 return;
+            var ghosts = PlacementGhosts.Count > 0 ? PlacementGhosts : new[] { primary };
+            foreach (var ghost in ghosts)
+                DrawPlacementGhost(ghost, position + ghost.Position - primary.Position);
+        }
 
+        private void DrawPlacementGhost(InstanceMarker ghost, Vector3 position)
+        {
+            if (_gl == null) return;
             var placed = new InstanceMarker
             {
                 Kind = ghost.Kind,
@@ -4323,12 +4352,13 @@ void main()
             // While a stamp is armed the hovered-cell highlight is the cursor, and a second tinted
             // cell beside it would only be read as a second cursor.
             if (_isPlacementActive || _isTilePlacementActive ||
-                _selectedTileCell is not { } cell || _gl == null)
+                (_selectedTileCell == null && _selectedTileCells.Count == 0) || _gl == null)
             {
                 return;
             }
 
-            var vertices = BuildFootprintQuadVertices(scene, cell.Column, cell.Row, (1, 1));
+            var cells = _selectedTileCells.Count > 0 ? _selectedTileCells : new[] { _selectedTileCell!.Value };
+            var vertices = cells.SelectMany(cell => BuildFootprintQuadVertices(scene, cell.Column, cell.Row, (1, 1))).ToArray();
             if (vertices.Length == 0)
                 return;
 
@@ -4734,10 +4764,12 @@ void main()
 
                     // Tile models are authored about their own centre, which is where the scene's own tile
                     // transform puts them; the ghost has to agree or it would sit a half-tile off.
-                    var transform = Matrix4x4.CreateTranslation(
+                    var orientation = slot < TilePlacementOrientations.Count ? TilePlacementOrientations[slot] : 0;
+                    var height = slot < TilePlacementHeightOffsets.Count ? TilePlacementHeightOffsets[slot] : null;
+                    var transform = Matrix4x4.CreateRotationZ(orientation * MathF.PI / 2) * Matrix4x4.CreateTranslation(
                         (targetColumn + 0.5f) * AreaSceneComposer.TileSize,
                         (targetRow + 0.5f) * AreaSceneComposer.TileSize,
-                        CellFloorHeight(scene, targetColumn, targetRow));
+                        height ?? CellFloorHeight(scene, targetColumn, targetRow));
 
                     var buffer = GetOrBuildModelBuffer(model);
                     _gl.BindVertexArray(buffer.Vao);
@@ -4874,6 +4906,30 @@ void main()
             _gl.Enable(EnableCap.DepthTest);
         }
 
+        private void DrawStartDirections(AreaScene scene)
+        {
+            if (_gl == null) return;
+            var starts = scene.Instances.Where(marker => marker.Kind == InstanceMarkerKind.StartLocation).ToArray();
+            if (starts.Length == 0) return;
+            EnsureHighlightBuffer();
+            if (!_hasHighlightBuffer) return;
+            SetUniformBool("hasTexture", false);
+            SetUniformBool("unlit", true);
+            SetUniformFloat("alphaCutoff", 0f);
+            SetUniformFloat("flatAlpha", 1f);
+            SetUniformMatrix4("model", Matrix4x4.Identity);
+            _gl.Disable(EnableCap.DepthTest);
+            foreach (var marker in starts)
+            {
+                var displayed = Displayed(marker);
+                var direction = new Vector3(displayed.Orientation.X, displayed.Orientation.Y, 0);
+                if (direction.LengthSquared() < 0.0001f) direction = Vector3.UnitX;
+                DrawGizmoLines(BuildAxisVertices(displayed.Position + new Vector3(0, 0, 0.1f),
+                    Vector3.Normalize(direction) * GizmoArmLength), MarkerColor(InstanceMarkerKind.StartLocation));
+            }
+            _gl.Enable(EnableCap.DepthTest);
+        }
+
         private void DrawGizmoLines(float[] vertices, Vector3 color)
         {
             if (_gl == null)
@@ -5007,6 +5063,7 @@ void main()
             InstanceMarkerKind.Trigger => new Vector3(0.95f, 0.55f, 0.15f),
             // Aurora's waypoint yellow, for a waypoint whose appearance row names no model.
             InstanceMarkerKind.Waypoint => AuroraWaypointMarkerColor,
+            InstanceMarkerKind.StartLocation => new Vector3(0.2f, 0.95f, 0.35f),
             _ => new Vector3(0.7f, 0.7f, 0.7f)
         };
 

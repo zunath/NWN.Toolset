@@ -233,6 +233,13 @@ namespace Nwn.Preview.Areas
             return WithInstances(instances);
         }
 
+        public AreaScene WithStartLocation(InstanceMarker? marker)
+        {
+            var instances = Instances.Where(item => item.Kind != InstanceMarkerKind.StartLocation).ToList();
+            if (marker != null) instances.Add(marker);
+            return WithInstances(instances);
+        }
+
         private AreaScene WithInstances(IReadOnlyList<InstanceMarker> instances)
         {
             return new AreaScene

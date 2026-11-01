@@ -53,6 +53,9 @@ public sealed class AreaDocumentEditSession : IDisposable
     public bool ExecuteArea(string description, Action mutation) =>
         Execute(AreaDocumentEditTarget.Area, Area, description, mutation);
 
+    public bool ExecuteAreaRelated(string description, Action mutation, params DocumentSession[] related) =>
+        Execute(AreaDocumentEditTarget.Area, Area, description, mutation, related);
+
     public bool ExecuteInstances(string description, Action mutation) =>
         Execute(AreaDocumentEditTarget.Instances, Instances, description, mutation);
 
@@ -60,7 +63,8 @@ public sealed class AreaDocumentEditSession : IDisposable
         AreaDocumentEditTarget target,
         DocumentSession session,
         string description,
-        Action mutation)
+        Action mutation,
+        params DocumentSession[] related)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(mutation);
@@ -68,6 +72,8 @@ public sealed class AreaDocumentEditSession : IDisposable
         var previousPosition = session.UndoStack.Position;
         if (target == AreaDocumentEditTarget.Instances)
             session.ExecuteRelated(description, mutation, Comments);
+        else if (related.Length > 0)
+            session.ExecuteRelated(description, mutation, related);
         else
             session.Execute(description, mutation);
         if (session.UndoStack.Position == previousPosition)

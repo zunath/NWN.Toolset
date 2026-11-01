@@ -52,6 +52,45 @@ public sealed class AreaInstanceEditor
         });
     }
 
+    public bool AddCopies(IReadOnlyList<AreaInstanceCopy> copies)
+    {
+        if (copies.Count == 0 || copies.Any(copy => !TryGetListField(copy.Type, out _)))
+            return false;
+        return _documents.ExecuteInstances("Paste objects", () =>
+        {
+            foreach (var copy in copies)
+            {
+                TryGetListField(copy.Type, out var name);
+                var list = GetOrCreateInstanceList(name);
+                var index = list.Elements!.Count;
+                list.InsertElement(index, InstanceFieldMap.Duplicate(copy.Instance));
+                new GicDocument(_documents.Comments.Document).InsertCopiedComment(
+                    name, copy.Type, index, list.Elements.Count, copy.Comment);
+            }
+        });
+    }
+
+    public bool DeleteMany(IReadOnlyList<AreaInstanceReference> instances)
+    {
+        if (instances.Count == 0 || instances.Any(item => !TryGetListField(item.Type, out var name) ||
+                GetInstanceList(name)?.Elements is not { } list || item.Index < 0 || item.Index >= list.Count))
+            return false;
+        return _documents.ExecuteInstances("Cut objects", () =>
+        {
+            var comments = new GicDocument(_documents.Comments.Document);
+            foreach (var group in instances.Distinct().GroupBy(item => item.Type))
+            {
+                TryGetListField(group.Key, out var name);
+                var list = GetInstanceList(name)!;
+                foreach (var item in group.OrderByDescending(item => item.Index))
+                {
+                    list.RemoveElementAt(item.Index);
+                    comments.RemoveComment(name, item.Type, item.Index, list.Elements!.Count);
+                }
+            }
+        });
+    }
+
     public bool Duplicate(ModuleResourceType type, int index)
     {
         if (!TryGetListField(type, out var listFieldName) ||
