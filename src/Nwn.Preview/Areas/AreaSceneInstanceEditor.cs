@@ -34,6 +34,14 @@ public sealed class AreaSceneInstanceEditor
         return ApplySceneTransform(scene, marker, position, orientation);
     }
 
+    public AreaSceneInstanceEditResult DropToGround(AreaScene scene, InstanceMarker marker)
+    {
+        if (marker.Kind is InstanceMarkerKind.Door or InstanceMarkerKind.StartLocation ||
+            AreaWalkmesh.GroundHeightAt(scene.Tiles, marker.Position.X, marker.Position.Y) is not { } height)
+            return new AreaSceneInstanceEditResult(AreaSceneInstanceEditOutcome.NoChange);
+        return Move(scene, marker, new Vector3(marker.Position.X, marker.Position.Y, height));
+    }
+
     public AreaSceneInstanceEditResult Rotate(AreaScene scene, InstanceMarker marker, Vector2 orientation)
     {
         ArgumentNullException.ThrowIfNull(scene);

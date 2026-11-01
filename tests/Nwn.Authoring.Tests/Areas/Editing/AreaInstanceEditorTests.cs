@@ -76,6 +76,60 @@ public sealed class AreaInstanceEditorTests
         Assert.AreEqual(1f, item.Get("XOrientation").GetSingle());
     }
 
+    [TestMethod]
+    public void MixedKindClipboardBatchKeepsCommentsAndUndoesAsOneChange()
+    {
+        using var documents = CreateDocuments();
+        var editor = new AreaInstanceEditor(documents);
+        editor.Add(ModuleResourceType.Utc, CreateInstance("creature"), "creature note");
+        editor.Add(ModuleResourceType.Utp, CreateInstance("placeable"), "placeable note");
+        var copies = new[]
+        {
+            new AreaInstanceCopy(ModuleResourceType.Utc, editor.CopyInstance(ModuleResourceType.Utc, 0)!,
+                documents.Comments.Document.Root.Get("Creature List").Elements![0]),
+            new AreaInstanceCopy(ModuleResourceType.Utp, editor.CopyInstance(ModuleResourceType.Utp, 0)!,
+                documents.Comments.Document.Root.Get("Placeable List").Elements![0])
+        };
+        var beforeGit = documents.Instances.ToBytes();
+        var beforeGic = documents.Comments.ToBytes();
+        Assert.IsTrue(editor.AddCopies(copies));
+        Assert.AreEqual(2, documents.Instances.Document.Root.Get("Creature List").Elements!.Count);
+        Assert.AreEqual("placeable note", documents.Comments.Document.Root.Get("Placeable List").Elements![1].Get("Comment").GetString());
+        Assert.IsTrue(documents.UndoLatest());
+        CollectionAssert.AreEqual(beforeGit, documents.Instances.ToBytes());
+        CollectionAssert.AreEqual(beforeGic, documents.Comments.ToBytes());
+        Assert.IsTrue(editor.DeleteMany([new(ModuleResourceType.Utc, 0), new(ModuleResourceType.Utp, 0)]));
+        Assert.AreEqual(0, documents.Instances.Document.Root.Get("Creature List").Elements!.Count);
+        Assert.AreEqual(0, documents.Instances.Document.Root.Get("Placeable List").Elements!.Count);
+        Assert.IsTrue(documents.UndoLatest());
+        CollectionAssert.AreEqual(beforeGit, documents.Instances.ToBytes());
+        CollectionAssert.AreEqual(beforeGic, documents.Comments.ToBytes());
+    }
+
+    [TestMethod]
+    public void RelatedModuleEntryUsesTheAreaHistoryAndRetainsTheSharedDocument()
+    {
+        using var documents = CreateDocuments();
+        using var module = new DocumentSession("module.ifo", CreateDocument("IFO ", "Tag"));
+        var entry = new ModuleEntryEditor(module);
+        Assert.IsTrue(documents.ExecuteAreaRelated("Rotate start", () => entry.Document.SetEntryDirection(0, 2), module));
+        Assert.AreEqual(0f, entry.Document.EntryDirectionX);
+        Assert.AreEqual(1f, entry.Document.EntryDirectionY);
+        Assert.IsTrue(entry.IsDirty);
+        entry.MarkSaved();
+        Assert.IsFalse(entry.IsDirty);
+        Assert.IsTrue(documents.UndoLatest());
+        Assert.AreEqual(1f, entry.Document.EntryDirectionX);
+        Assert.AreEqual(0f, entry.Document.EntryDirectionY);
+        Assert.IsTrue(entry.IsDirty);
+        Assert.IsTrue(documents.RedoLatest());
+        Assert.IsFalse(entry.IsDirty);
+        Assert.IsFalse(entry.IsEntryDirty);
+        module.Execute("Change module tag", () => entry.Document.Tag = "updated");
+        Assert.IsTrue(entry.IsDirty);
+        Assert.IsFalse(entry.IsEntryDirty, "An unrelated module edit is not an area entry-point edit.");
+    }
+
     private static AreaDocumentEditSession CreateDocuments()
     {
         var area = CreateDocument("ARE ", "Tag");

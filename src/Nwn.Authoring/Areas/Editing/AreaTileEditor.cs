@@ -6,7 +6,7 @@ using Nwn.Formats.Tilesets;
 namespace Nwn.Authoring.Areas.Editing;
 
 /// <summary>Coordinates tile selection, placement, paint validity and edits for one area session.</summary>
-public sealed class AreaTileEditor
+public sealed partial class AreaTileEditor
 {
     private readonly AreaDocumentEditSession _documents;
     private readonly Func<string, TilesetDefinition?> _resolveTileset;
@@ -72,10 +72,7 @@ public sealed class AreaTileEditor
 
     public void SelectCell((int Column, int Row)? cell)
     {
-        if (_selectedCell == cell)
-            return;
-        _selectedCell = cell;
-        StateChanged?.Invoke();
+        SelectCells(cell is { } value ? new[] { value } : Array.Empty<(int, int)>());
     }
 
     public void InvalidatePlacementValidity() => InvalidateValidity();

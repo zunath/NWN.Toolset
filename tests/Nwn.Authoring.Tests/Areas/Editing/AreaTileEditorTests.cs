@@ -1,3 +1,4 @@
+using Nwn.Authoring.Documents.Native;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 using Nwn.Authoring.Areas.Editing;
@@ -55,6 +56,86 @@ public sealed class AreaTileEditorTests
         Assert.IsTrue(documents.UndoLatest());
         Assert.AreEqual(0, AreaTiles.StateAt(area, 0, 0)?.HeightLevel);
     }
+
+    [TestMethod]
+    public void ClipboardCopiesMultipleTilesWithIndependentCompleteValuesAndOneUndo()
+    {
+        using var documents = CreateSession(4, 1, [1, 2, 3, 4]);
+        var editor = new AreaTileEditor(documents, _ => null);
+        var area = new Nwn.Authoring.Documents.Native.AreDocument(documents.Area.Document);
+        documents.ExecuteArea("Author source", () =>
+        {
+            AreaTiles.SetOrientation(area, 0, 0, 3);
+            AreaTiles.SetHeightLevel(area, 1, 0, 2);
+            area.Tiles[0].SetString("Sentinel", GffFieldType.CExoString, "keep complete tile");
+        });
+        editor.SelectCells([(0, 0), (1, 0)]);
+        var copy = editor.CopySelection()!;
+        documents.ExecuteArea("Change source", () => AreaTiles.SetTile(area, 0, 0, 7, 0));
+        var before = documents.Area.ToBytes();
+        Assert.AreEqual(AreaTileEditOutcome.Changed, editor.PasteAt(copy, 2, 0));
+        Assert.AreEqual(new PlacedTileState(1, 3, 0), AreaTiles.StateAt(area, 2, 0));
+        Assert.AreEqual(new PlacedTileState(2, 0, 2), AreaTiles.StateAt(area, 3, 0));
+        Assert.AreEqual("keep complete tile", area.Tiles[2].GetStringOrNull("Sentinel"));
+        Assert.IsTrue(documents.UndoLatest());
+        CollectionAssert.AreEqual(before, documents.Area.ToBytes());
+        Assert.IsTrue(documents.RedoLatest());
+        Assert.AreEqual(new PlacedTileState(1, 3, 0), AreaTiles.StateAt(area, 2, 0));
+    }
+
+    [TestMethod]
+    public void ClipboardRejectsMismatchedTilesetsAndOutOfBoundsWithoutPartialWrites()
+    {
+        using var documents = CreateSession(3, 1, [1, 2, 3]);
+        var editor = new AreaTileEditor(documents, _ => null);
+        editor.SelectCells([(0, 0), (1, 0)]);
+        var copy = editor.CopySelection()!;
+        var before = documents.Area.ToBytes();
+        Assert.AreEqual(AreaTileEditOutcome.Rejected, editor.PasteAt(copy, 2, 0));
+        Assert.AreEqual(AreaTileEditOutcome.Rejected, editor.PasteAt(copy with { Tileset = "another" }, 0, 0));
+        CollectionAssert.AreEqual(before, documents.Area.ToBytes());
+        Assert.IsFalse(documents.CanUndoArea);
+    }
+
+    [TestMethod]
+    public void CutTilesUsesTheTilesetsDeclaredFillAndRetainsElevation()
+    {
+        using var documents = CreateSession(2, 1, [1, 1]);
+        var tileset = new TilesetDefinition { Floor = "Grass", Tiles = [Flat("Grass"), Flat("Stone")] };
+        var editor = new AreaTileEditor(documents, _ => tileset);
+        var area = new Nwn.Authoring.Documents.Native.AreDocument(documents.Area.Document);
+        documents.ExecuteArea("Raise", () => AreaTiles.SetHeightLevel(area, 0, 0, 3));
+        editor.SelectCells([(0, 0), (1, 0)]);
+        Assert.AreEqual(AreaTileEditOutcome.Changed, editor.EraseSelection());
+        Assert.AreEqual(new PlacedTileState(0, 0, 3), AreaTiles.StateAt(area, 0, 0));
+        Assert.AreEqual(0, AreaTiles.StateAt(area, 1, 0)!.Value.TileId);
+        Assert.IsTrue(documents.UndoLatest());
+        Assert.AreEqual(1, AreaTiles.StateAt(area, 0, 0)!.Value.TileId);
+        Assert.AreEqual(1, AreaTiles.StateAt(area, 1, 0)!.Value.TileId);
+    }
+
+    [TestMethod]
+    public void VariantsCycleInTileOrderAndPreserveTerrainEdgesAndHeights()
+    {
+        using var documents = CreateSession(1, 1, [0]);
+        var tileset = new TilesetDefinition
+        {
+            Tiles = [Flat("Grass"), Flat("Stone"), Flat("Grass"),
+                new TileDefinition { TopLeft = "Grass", TopRight = "Grass", BottomLeft = "Grass", BottomRight = "Grass", Top = "Road" },
+                new TileDefinition { TopLeft = "Grass", TopRight = "Grass", BottomLeft = "Grass", BottomRight = "Grass", TopLeftHeight = 1 }]
+        };
+        var editor = new AreaTileEditor(documents, _ => tileset);
+        var area = new Nwn.Authoring.Documents.Native.AreDocument(documents.Area.Document);
+        Assert.AreEqual(AreaTileEditOutcome.Changed, editor.CycleVariant(0, 0));
+        Assert.AreEqual(2, AreaTiles.StateAt(area, 0, 0)!.Value.TileId);
+        Assert.AreEqual(AreaTileEditOutcome.Changed, editor.CycleVariant(0, 0));
+        Assert.AreEqual(0, AreaTiles.StateAt(area, 0, 0)!.Value.TileId);
+        Assert.IsTrue(documents.UndoLatest());
+        Assert.AreEqual(2, AreaTiles.StateAt(area, 0, 0)!.Value.TileId);
+    }
+
+    private static TileDefinition Flat(string terrain) => new()
+    { TopLeft = terrain, TopRight = terrain, BottomLeft = terrain, BottomRight = terrain };
 
     private static AreaDocumentEditSession CreateSession(int width, int height, IReadOnlyList<int> tileIds)
     {

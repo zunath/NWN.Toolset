@@ -14,6 +14,10 @@ public sealed partial class AreaEditorSurface : UserControl
         AvaloniaXamlLoader.Load(this);
         Viewport = this.FindControl<AreaViewportControl>("ViewportControl")
             ?? throw new InvalidOperationException("Area viewport surface is missing its viewport control.");
+        ContextRequested += (sender, args) =>
+        {
+            if (Viewport.SuppressContextMenu && args.TryGetPosition(this, out _)) args.Handled = true;
+        };
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e) => Viewport.HandlePointerPressed(e);

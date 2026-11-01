@@ -30,6 +30,16 @@ namespace Nwn.Authoring.Documents.Native
         public float EntryY => Root.GetSingleOrNull("Mod_Entry_Y") ?? 0;
         public float EntryZ => Root.GetSingleOrNull("Mod_Entry_Z") ?? 0;
 
+        public float EntryDirectionX => Root.GetSingleOrNull("Mod_Entry_Dir_X") ?? 1f;
+        public float EntryDirectionY => Root.GetSingleOrNull("Mod_Entry_Dir_Y") ?? 0f;
+
+        public void SetEntryDirection(float x, float y)
+        {
+            var heading = Areas.Placement.InstanceFieldMap.NormalizeHeading(x, y);
+            Root.SetSingle("Mod_Entry_Dir_X", heading.X);
+            Root.SetSingle("Mod_Entry_Dir_Y", heading.Y);
+        }
+
         public LocString Name => Root.GetOrAddLocString("Mod_Name");
 
         public LocString Description => Root.GetOrAddLocString("Mod_Description");

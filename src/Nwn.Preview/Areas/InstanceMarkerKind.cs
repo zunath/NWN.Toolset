@@ -12,7 +12,8 @@ namespace Nwn.Preview.Areas
         Sound,
         Store,
         Trigger,
-        Waypoint
+        Waypoint,
+        StartLocation
     }
 }
 
