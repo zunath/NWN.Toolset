@@ -33,6 +33,8 @@ or tint precedence. Callers own those decisions. The composed surface is an
 unlit color preview: shader execution, lighting, animation, skinned assembly,
 normal/specular maps and native equipped appearance remain separate gates.
 
+An `AreaViewportTintSurface` layer with a custom color (`CustomColor.W` above 0.5) is shaded with its `PaletteRow`, which the host sets to the color's nearest palette swatch: the swatch row plus the color's difference from the swatch midtone (shade 128), scaled by the row's luminance. A color equal to its swatch renders exactly like the palette color, including the row's alpha as reflection coverage. A black swatch row borrows the layer's first row for the scaling. `CustomColorsUseLayerCoverage` keeps the layer's first row as metal coverage and opaque coverage elsewhere, for surfaces whose game shader does not take the swatch's reflection.
+
 The viewport chooses a supplied explicit material surface before the bitmap
 surface, falling back when the material surface is unavailable. Material and
 bitmap bindings can therefore identify different decoded surfaces.

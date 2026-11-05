@@ -214,6 +214,7 @@ uniform float tintPaletteRow6;
 uniform float tintPaletteRow7;
 uniform float tintPaletteRow8;
 uniform float tintPaletteRow9;
+uniform bool tintCustomUsesLayerCoverage;
 
 // Blinn-Phong exponent for a specular-mapped highlight when the material carries no
 // roughness map. One shared value rather than a material parameter: MTR files carry no
@@ -296,23 +297,49 @@ vec4 ResolveTintMapColor()
         0.0);
     if (custom.a > 0.5)
     {
-        vec4 referenceShade = textureLod(
+        // The host selects the custom color's nearest palette swatch as paletteRow. The
+        // color is shaded with that swatch's own row, offset by its difference from the
+        // swatch midtone (shade 128) and scaled by the row's shading, so a color equal to
+        // a swatch renders exactly like that palette color, reflection included, and
+        // darker or more saturated colors keep the palette's contrast.
+        vec3 swatchMidpoint = textureLod(
             tintPaletteTexture,
-            vec2(paletteU, referenceRow),
-            0.0);
-        vec3 referenceMidpoint = textureLod(
-            tintPaletteTexture,
-            vec2(128.5 / 256.0, referenceRow),
+            vec2(128.5 / 256.0, paletteRow),
             0.0).rgb;
         const vec3 luminanceWeights = vec3(0.2126, 0.7152, 0.0722);
+        // An all-black swatch row has no shading to lend: shade the offset with the
+        // layer's first palette row instead, so a near-black custom color keeps its hue.
+        vec3 rampShade = paletteColor.rgb;
+        vec3 rampMidpoint = swatchMidpoint;
+        if (dot(swatchMidpoint, luminanceWeights) < 0.5 / 255.0)
+        {
+            rampShade = textureLod(
+                tintPaletteTexture,
+                vec2(paletteU, referenceRow),
+                0.0).rgb;
+            rampMidpoint = textureLod(
+                tintPaletteTexture,
+                vec2(128.5 / 256.0, referenceRow),
+                0.0).rgb;
+        }
         float shadeScale = max(
-            dot(referenceShade.rgb, luminanceWeights) /
-                max(dot(referenceMidpoint, luminanceWeights), 1.0 / 255.0),
+            dot(rampShade, luminanceWeights) /
+                max(dot(rampMidpoint, luminanceWeights), 1.0 / 255.0),
             0.0);
-        paletteColor.rgb = clamp(custom.rgb * shadeScale, 0.0, 1.0);
-        // Metal RGB keeps the neutral metal row's reflection coverage, independently of the
-        // hidden preset. Other RGB layers stay opaque, matching the client tint shaders.
-        paletteColor.a = layer > 1.5 && layer < 3.5 ? referenceShade.a : 1.0;
+        paletteColor.rgb = clamp(
+            paletteColor.rgb + (custom.rgb - swatchMidpoint) * shadeScale,
+            0.0,
+            1.0);
+        // Custom colors take the swatch's reflection coverage unless the host keeps the
+        // layer's first row (metal) and opaque coverage (other layers) for this surface.
+        if (tintCustomUsesLayerCoverage)
+        {
+            float referenceAlpha = textureLod(
+                tintPaletteTexture,
+                vec2(paletteU, referenceRow),
+                0.0).a;
+            paletteColor.a = layer > 1.5 && layer < 3.5 ? referenceAlpha : 1.0;
+        }
     }
     return paletteColor;
 }
@@ -480,7 +507,8 @@ void main()
             uint TintAlphaTexId,
             bool TintAlphaUsesRedChannel,
             float TintAlphaCutoff,
-            AreaViewportTintLayer[] TintLayers);
+            AreaViewportTintLayer[] TintLayers,
+            bool TintCustomUsesLayerCoverage);
 
         private GL? _gl;
         private uint _shaderProgram;
@@ -5397,7 +5425,8 @@ void main()
                 ResolveTextureId(tint?.Alpha),
                 tint?.AlphaUsesRedChannel == true,
                 tint?.AlphaCutoff ?? 0f,
-                tint?.Layers.ToArray() ?? Array.Empty<AreaViewportTintLayer>());
+                tint?.Layers.ToArray() ?? Array.Empty<AreaViewportTintLayer>(),
+                tint?.CustomColorsUseLayerCoverage == true);
             _rawTextureCache[request] = material;
             return material;
         }
@@ -5432,6 +5461,7 @@ void main()
             _gl.BindTexture(TextureTarget.Texture2D, material.TintAlphaTexId);
             _gl.ActiveTexture(TextureUnit.Texture0);
 
+            SetUniformBool("tintCustomUsesLayerCoverage", material.TintCustomUsesLayerCoverage);
             for (var layer = 0; layer < material.TintLayers.Length; layer++)
             {
                 var tint = material.TintLayers[layer];

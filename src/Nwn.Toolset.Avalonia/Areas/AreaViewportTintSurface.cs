@@ -14,6 +14,12 @@ public sealed class AreaViewportTintSurface
     public float AlphaCutoff { get; }
     public IReadOnlyList<AreaViewportTintLayer> Layers => _layers;
 
+    /// <summary>
+    /// When true, custom colors keep the layer's first palette row as metal reflection coverage
+    /// and stay opaque on other layers instead of taking their swatch's coverage.
+    /// </summary>
+    public bool CustomColorsUseLayerCoverage { get; init; }
+
     public AreaViewportTintSurface(
         RgbaImage map,
         RgbaImage palette,
